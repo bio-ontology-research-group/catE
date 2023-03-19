@@ -71,9 +71,10 @@ class BaselineUnsat(Baseline):
                     tail = th.where(self.ontology_classes_idxs == graph_tail)[0]
                     assert self.ontology_classes[tail] == BOT
                     preds = predictions[i].cpu().numpy()
-                    
-                    filtering_labels[head] = 1
-                    filtered_preds = preds * filtering_labels
+
+                    filt_labels = filtering_labels.copy()
+                    filt_labels[head] = 1
+                    filtered_preds = preds * filt_labels
                                                             
 
                     preds = th.from_numpy(preds).to(self.device)
