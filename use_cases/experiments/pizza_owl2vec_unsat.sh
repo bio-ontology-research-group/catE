@@ -1,1 +1,1 @@
-python run_model.py -case pizza -kge transe -g owl2vec -r pizza/data -dim 128 -m 0.4 -wd 0.0001 -bs 8192 -lr 0.001 -tbs 8 -e 4000 -d cuda -rf result_pizza_owl2vec_unsattranse.csv -tf pizza/data/pizza_unsat_classes.csv -tu 
+python ../run_model.py -case pizza -kge transe -g owl2vec -r pizza/data -dim 128 -m 0.4 -wd 0.0001 -bs 8192 -lr 0.001 -tbs 8 -e 4000 -d cuda -rf result_pizza_owl2vec_unsattranse.csv -tf pizza/data/pizza_unsat_classes.csv -tu 

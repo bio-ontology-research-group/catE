@@ -8,13 +8,14 @@ import click as ck
 import os
 from src.models.baseline import Baseline
 from src.models.baseline_unsat import BaselineUnsat
+from src.models.cat_unsat import CatUnsat
 from src.utils import seed_everything
 import gc
 import torch as th
 
 @ck.command()
 @ck.option('--use-case', '-case', required=True, type=ck.Choice(["pizza"]))
-@ck.option('--graph-type', '-g', required=True, type=ck.Choice(['rdf', "owl2vec", 'onto2graph']))
+@ck.option('--graph-type', '-g', required=True, type=ck.Choice(['rdf', "owl2vec", 'onto2graph', 'cat']))
 @ck.option('--kge-model', '-kge', required=True, type=ck.Choice(['transe', 'transr']))
 @ck.option('--root', '-r', required=True, type=ck.Path(exists=True))
 @ck.option('--emb-dim', '-dim', required=True, type=int, default=256)
@@ -73,27 +74,31 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin,
     seed_everything(seed)
 
     if test_unsatisfiability:
-        Model = BaselineUnsat
+        if graph_type == "cat":
+            Model = CatUnsat
+        else:
+            Model = BaselineUnsat
     else:
         Model = Baseline
         
     model = Model(use_case,
                   graph_type,
-                     kge_model,
-                     root,
-                     emb_dim,
-                     margin,
-                     weight_decay,
-                     batch_size,
-                     lr,
-                     num_negs,
-                     test_batch_size,
-                     epochs,
-                     test_file,
-                     device,
-                     seed,
-                     10 #tolerance
-                     )
+                  kge_model,
+                  root,
+                  emb_dim,
+                  margin,
+                  weight_decay,
+                  batch_size,
+                  lr,
+                  num_negs,
+                  test_batch_size,
+                  epochs,
+                  test_file,
+                  device,
+                  seed,
+                  10, #tolerance,
+                  test_unsatisfiability,
+                  )
 
     if not only_test:
         model.train()
