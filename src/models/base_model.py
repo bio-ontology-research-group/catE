@@ -12,11 +12,11 @@ prefix = {
     "pizza": "pizza"
 }
 suffix = {
-    "taxonomy": "taxonomy.edgelist",
-    "onto2graph": "onto2graph.edgelist",
+    "taxonomy": "taxonomy_initial_terminal.edgelist",
+    "onto2graph": "onto2graph_initial_terminal.edgelist",
     "owl2vec": "owl2vec_initial_terminal.edgelist",
-    "rdf": "rdf.edgelist",
-    "cat": "cat.edgelist",
+    "rdf": "rdf_initial_terminal.edgelist",
+    "cat": "cat_initial_terminal.edgelist",
 }
 
 

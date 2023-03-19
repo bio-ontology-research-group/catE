@@ -14,11 +14,15 @@ subsumption_rel_name = {
 
 bot_name = {
     "owl2vec": "http://www.w3.org/2002/07/owl#Nothing",
+    "onto2graph": "http://www.w3.org/2002/07/owl#Nothing",
+    "rdf": "http://www.w3.org/2002/07/owl#Nothing",
     "cat": "owl:Nothing"
 }
 
 top_name = {
     "owl2vec": "http://www.w3.org/2002/07/owl#Thing",
+    "onto2graph": "http://www.w3.org/2002/07/owl#Thing",
+    "rdf": "http://www.w3.org/2002/07/owl#Thing",
     "cat": "owl:Thing" 
 }
 
