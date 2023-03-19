@@ -1,0 +1,3 @@
+[submodule "src/projectors/Onto2Graph"]
+	path = src/projectors/Onto2Graph
+	url = https://github.com/ferzcam/Onto2Graph.git
