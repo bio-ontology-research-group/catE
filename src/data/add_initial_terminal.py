@@ -6,7 +6,7 @@ sys.path.append("../../")
 
 import pandas as pd
 from mowl.owlapi.defaults import BOT, TOP
-from src.utils import subsumption_rel_name
+from src.utils import subsumption_rel_name, bot_name, top_name
 import click as ck
 
 import logging
@@ -30,8 +30,11 @@ def add_initial_and_terminal(input_file, projector_name):
     sub_rel_name = subsumption_rel_name[projector_name]
     # Add initial and terminal nodes
     added = 0
+    bot = bot_name[projector_name]
+    top = top_name[projector_name]
+    
     for node in nodes:
-        df = pd.concat([df, pd.DataFrame([[node, sub_rel_name, TOP], [BOT, sub_rel_name, node]], columns=["head", "relation", "tail"])])
+        df = pd.concat([df, pd.DataFrame([[node, sub_rel_name, top], [bot, sub_rel_name, node]], columns=["head", "relation", "tail"])])
         added += 2
 
     logging.info(f"No. of rows added: {added}")

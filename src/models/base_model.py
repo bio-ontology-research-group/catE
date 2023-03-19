@@ -16,7 +16,7 @@ suffix = {
     "onto2graph": "onto2graph_initial_terminal.edgelist",
     "owl2vec": "owl2vec_initial_terminal.edgelist",
     "rdf": "rdf_initial_terminal.edgelist",
-    "cat": "cat_initial_terminal.edgelist",
+    "cat": "cat.edgelist",
 }
 
 
@@ -62,7 +62,8 @@ class Model():
                  test_file,
                  device,
                  seed,
-                 initial_tolerance
+                 initial_tolerance,
+                 test_unsatifiability,
                  ):
 
         self.use_case = use_case
@@ -81,6 +82,7 @@ class Model():
         self.device = device
         self.seed = seed
         self.initial_tolerance = initial_tolerance
+        self.test_unsatifiability = test_unsatifiability
 
         self._triples_factory = None
         self._graph = None
@@ -193,8 +195,11 @@ class Model():
             return self._node_to_id
 
         graph_classes = set(self.graph["head"].unique()) | set(self.graph["tail"].unique())
-        graph_classes.add(BOT)
-        graph_classes.add(TOP)
+        bot = bot_name[self.graph_type]
+        top = top_name[self.graph_type]
+        graph_classes.add(bot)
+        graph_classes.add(top)
+                
         ont_classes = set(self.ontology_classes)
         all_classes = list(graph_classes | ont_classes)
         all_classes.sort()
@@ -257,8 +262,10 @@ class Model():
         classes.columns = ["classes"]
         classes = classes["classes"].values.tolist()
         classes = set(classes)
-        classes.add(BOT)
-        classes.add(TOP)
+        bot = bot_name[self.graph_type]
+        top = top_name[self.graph_type]
+        classes.add(bot)
+        classes.add(top)
         classes = list(classes)
         classes.sort()
 
@@ -284,7 +291,7 @@ class Model():
         properties.columns = ["properties"]
         properties = properties["properties"].values.tolist()
 
-        if self.graph_type == "rdf":
+        if self.graph_type == "rdf" or self.graph_type == "cat":
             properties = [r for r in properties if r in self.node_to_id]
         else:
             properties = [r for r in properties if r in self.relation_to_id]
@@ -299,7 +306,7 @@ class Model():
         if self._ontology_properties_idxs is not None:
             return self._ontology_properties_idxs
         
-        if self.graph_type == "rdf" and self.test_existential:
+        if self.graph_type == "rdf" or self.graph_type == "cat":
             prop_to_id = {c: self.node_to_id[c] for c in self.ontology_properties if c in self.node_to_id}
         else:
             prop_to_id = {c: self.relation_to_id[c] for c in self.ontology_properties if c in self.relation_to_id}
@@ -358,7 +365,7 @@ class Model():
             rels = rel_idx * th.ones_like(heads)
         else:
             
-            if self.graph_type == "rdf" and self.test_existential:
+            if (self.graph_type in ["rdf", "cat"]) and self.test_unsatisfiability:
                 rels = [self.node_to_id[r] for r in tuples["relation"]]
             else:
                 rels = [self.relation_to_id[r] for r in tuples["relation"]]
