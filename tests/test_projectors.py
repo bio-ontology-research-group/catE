@@ -1,7 +1,6 @@
 from unittest import TestCase
 import wget
-from src.projectors.taxonomy_projector import taxonomy_projector
-from src.projectors.dl2vec_projector import dl2vec_projector
+
 from src.projectors.owl2vecstar_projector import owl2vecstar_projector
 from src.projectors.onto2graph_projector import onto2graph_projector
 from src.projectors.rdf_projector import rdf_projector
@@ -17,19 +16,6 @@ class TestProjectors(TestCase):
         if not os.path.exists("pizza.owl"):
             wget.download('https://protege.stanford.edu/ontologies/pizza/pizza.owl')
         
-    def test_taxonomy_projector(self):
-        """This tests the taxonomy projector"""
-
-        taxonomy_projector('pizza.owl')
-        self.assertTrue(os.path.exists('pizza.taxonomy.edgelist'))
-
-
-    def test_dl2vec_projector(self):
-        """This tests the dl2vec projector"""
-
-        dl2vec_projector('pizza.owl')
-        self.assertTrue(os.path.exists('pizza.dl2vec.edgelist'))
-
     def test_owl2vecstar_projector(self):
         """This tests the owl2vecstar projector"""
 

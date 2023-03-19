@@ -16,3 +16,4 @@ dependencies:
       - pykeen
       - pystow==0.4.3 # PyKEEN requirement
       - wget
+      - pytest
