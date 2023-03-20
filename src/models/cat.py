@@ -46,8 +46,11 @@ class CatModel(Model):
                     data = (head, rel, neg_tail)
                     neg_logits += self.model.forward(data)
                 neg_logits /= self.num_negs
-                
-                batch_loss= th.relu(pos_logits - neg_logits + self.margin).mean()
+
+                if self.kge_model == "ordere":
+                    batch_loss = (pos_logits + th.relu(self.margin - neg_logits)).mean()
+                else:
+                    batch_loss= th.relu(pos_logits - neg_logits + self.margin).mean()
 
                 optimizer.zero_grad()
                 batch_loss.backward()
