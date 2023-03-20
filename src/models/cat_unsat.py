@@ -8,7 +8,9 @@ from mowl.owlapi.defaults import BOT
 
 
 subsumption_rel_name = {
-    "cat": "http://arrow"
+    "cat": "http://arrow",
+    "cat1": "http://arrow",
+    "cat2": "http://arrow"
 }
 
 class CatUnsat(CatModel):
@@ -47,6 +49,8 @@ class CatUnsat(CatModel):
                                                                 
                     graph_rel_name = self.id_to_relation[rel.item()]
                     filtering_labels[head_ont_id] = 10000
+
+        filtering_labels[self.bot_idx] = 10000
         return filtering_labels
 
 

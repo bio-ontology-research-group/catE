@@ -17,6 +17,9 @@ suffix = {
     "owl2vec": "owl2vec_initial_terminal.edgelist",
     "rdf": "rdf_initial_terminal.edgelist",
     "cat": "cat.edgelist",
+    "cat1": "cat.s1.edgelist",
+    "cat2": "cat.s1.edgelist",
+    
 }
 
 
@@ -283,6 +286,25 @@ class Model():
         return self._ontology_classes_idxs
 
     @property
+    def bot(self):
+        return bot_name[self.graph_type]
+
+    @property
+    def top(self):
+        return top_name[self.graph_type]
+
+    
+    @property
+    def bot_idx(self):
+        return self.ontology_classes.index(self.bot)
+    
+    @property
+    def top_idx(self):
+        return self.ontology_classes.index(self.top)
+    
+    
+    
+    @property
     def ontology_properties(self):
         if self._ontology_properties is not None:
             return self._ontology_properties
@@ -291,7 +313,7 @@ class Model():
         properties.columns = ["properties"]
         properties = properties["properties"].values.tolist()
 
-        if self.graph_type == "rdf" or self.graph_type == "cat":
+        if self.graph_type in [ "rdf", "cat", "cat1", "cat2"]:
             properties = [r for r in properties if r in self.node_to_id]
         else:
             properties = [r for r in properties if r in self.relation_to_id]
@@ -306,7 +328,7 @@ class Model():
         if self._ontology_properties_idxs is not None:
             return self._ontology_properties_idxs
         
-        if self.graph_type == "rdf" or self.graph_type == "cat":
+        if self.graph_type in [ "rdf", "cat", "cat1", "cat2"]:
             prop_to_id = {c: self.node_to_id[c] for c in self.ontology_properties if c in self.node_to_id}
         else:
             prop_to_id = {c: self.relation_to_id[c] for c in self.ontology_properties if c in self.relation_to_id}
@@ -317,7 +339,8 @@ class Model():
         self._ontology_properties_idxs = ontology_properties_idxs
         return self._ontology_properties_idxs
 
-
+        
+        
     def create_graph_train_dataloader(self):
         heads = [self.node_to_id[h] for h in self.graph["head"]]
         rels = [self.relation_to_id[r] for r in self.graph["relation"]]
@@ -365,7 +388,7 @@ class Model():
             rels = rel_idx * th.ones_like(heads)
         else:
             
-            if (self.graph_type in ["rdf", "cat"]) and self.test_unsatisfiability:
+            if (self.graph_type in ["rdf", "cat", "cat1", "cat2"]) and self.test_unsatisfiability:
                 rels = [self.node_to_id[r] for r in tuples["relation"]]
             else:
                 rels = [self.relation_to_id[r] for r in tuples["relation"]]

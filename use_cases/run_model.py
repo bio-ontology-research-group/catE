@@ -15,7 +15,7 @@ import torch as th
 
 @ck.command()
 @ck.option('--use-case', '-case', required=True, type=ck.Choice(["pizza"]))
-@ck.option('--graph-type', '-g', required=True, type=ck.Choice(['rdf', "owl2vec", 'onto2graph', 'cat']))
+@ck.option('--graph-type', '-g', required=True, type=ck.Choice(['rdf', "owl2vec", 'onto2graph', 'cat', 'cat1', 'cat2']))
 @ck.option('--kge-model', '-kge', required=True, type=ck.Choice(['transe', 'transr']))
 @ck.option('--root', '-r', required=True, type=ck.Path(exists=True))
 @ck.option('--emb-dim', '-dim', required=True, type=int, default=256)
@@ -74,7 +74,7 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin,
     seed_everything(seed)
 
     if test_unsatisfiability:
-        if graph_type == "cat":
+        if graph_type in ["cat", "cat1", "cat2"]:
             Model = CatUnsat
         else:
             Model = BaselineUnsat
@@ -105,7 +105,7 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin,
 
     if not only_train:
         assert os.path.exists(test_file)
-        params = (emb_dim, margin, weight_decay, batch_size, lr)
+        params = (emb_dim, margin, weight_decay, batch_size, lr, num_negs)
 
         if test_unsatisfiability:
             print("Start testing unsatisfiability")
@@ -113,11 +113,11 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin,
             save_results(params, raw_metrics, filtered_metrics, result_filename)
 
 def save_results(params, raw_metrics, filtered_metrics, result_dir):
-    emb_dim, margin, weight_decay, batch_size, lr = params
+    emb_dim, margin, weight_decay, batch_size, lr, num_negs = params
     mr, mrr, h1, h10, h100, auc = raw_metrics
     mr_f, mrr_f, h1_f, h10_f, h100_f, auc_f = filtered_metrics
     with open(result_dir, 'a') as f:
-        line = f"{emb_dim},{margin},{weight_decay},{batch_size},{lr},{mr},{mrr},{h1},{h10},{h100},{auc},{mr_f},{mrr_f},{h1_f},{h10_f},{h100_f},{auc_f}\n"
+        line = f"{emb_dim},{margin},{weight_decay},{batch_size},{lr},{num_negs},{mr},{mrr},{h1},{h10},{h100},{auc},{mr_f},{mrr_f},{h1_f},{h10_f},{h100_f},{auc_f}\n"
         f.write(line)
     print("Results saved to ", result_dir)
         
