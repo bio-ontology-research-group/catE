@@ -1,7 +1,7 @@
 import torch.nn as nn
 import os
 import pandas as pd
-from pykeen.models import TransE, TransR
+from pykeen.models import TransE, TransR, ERModel
 from mowl.owlapi.defaults import TOP, BOT
 import logging
 import torch as th
@@ -16,10 +16,17 @@ suffix = {
     "onto2graph": "onto2graph_initial_terminal.edgelist",
     "owl2vec": "owl2vec_initial_terminal.edgelist",
     "rdf": "rdf_initial_terminal.edgelist",
-    "cat": "cat.edgelist",
+    "cat": "cat.s1.edgelist",
 }
 
 
+class OrderE(TransE):
+    def __init__(self, *args, **kwargs):
+        super(OrderE, self).__init__(*args, **kwargs)
+
+    def forward_(h, r, t, mode = None):
+        order_loss = th.relu(t - h)
+        return order_loss
 
 class KGEModule(nn.Module):
     def __init__(self, kge_model, triples_factory, embedding_dim, random_seed):
@@ -38,12 +45,19 @@ class KGEModule(nn.Module):
                                      embedding_dim=self.embedding_dim,
                                      scoring_fct_norm=2,
                                      random_seed = self.random_seed)
+        elif kge_model == "ordere":
+            self.kg_module =  OrderE(triples_factory=self.triples_factory,
+                                     embedding_dim=self.embedding_dim,
+                                     scoring_fct_norm=2,
+                                     random_seed = self.random_seed)
             
     def forward(self, data):
         h, r, t = data
         x = -self.kg_module.forward(h, r, t, mode=None)
         return x
 
+
+    
 
 class Model():
     def __init__(self,
