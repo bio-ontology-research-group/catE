@@ -143,9 +143,9 @@ class CatUnsat(CatModel):
 
 
     def normal_forward(self, head_idxs, rel_idxs, tail_idxs):
-          logits = self.model.forward((head_idxs, rel_idxs, tail_idxs))
-          logits = logits.reshape(-1, len(self.ontology_classes_idxs))
-          return logits
+        logits = self.model.predict((head_idxs, rel_idxs, tail_idxs))
+        logits = logits.reshape(-1, len(self.ontology_classes_idxs))
+        return logits
 
     
     def predict(self, heads, rels, tails):
@@ -166,7 +166,7 @@ class CatUnsat(CatModel):
         rels = rels.reshape(-1)
                                                 
         eval_heads = self.ontology_classes_idxs.repeat(num_tails)
-                
+
         logits = self.normal_forward(eval_heads, rels, tails)
 
         return logits

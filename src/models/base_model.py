@@ -27,17 +27,24 @@ class OrderE(TransE):
     def __init__(self, *args, **kwargs):
         super(OrderE, self).__init__(*args, **kwargs)
 
-    def forward_(h, r, t, mode = None):
+    def forward(self, h_indices, r_indices, t_indices, mode = None):
+        h, _, t = self._get_representations(h=h_indices, r=r_indices, t=t_indices, mode=mode)
         order_loss = th.relu(t - h)
         return order_loss
 
+    def score_hrt(self, hrt_batch, mode = None):
+        h, r, t = self._get_representations(h=hrt_batch[:, 0], r = hrt_batch[:, 1], t=hrt_batch[:, 2], mode=mode)
+        return t - h
+    
 class KGEModule(nn.Module):
     def __init__(self, kge_model, triples_factory, embedding_dim, random_seed):
         super().__init__()
         self.triples_factory = triples_factory
         self.embedding_dim = embedding_dim
         self.random_seed = random_seed
+        self.kge_model = kge_model
 
+        
         if kge_model == "transe":
             self.kg_module =  TransE(triples_factory=self.triples_factory,
                                      embedding_dim=self.embedding_dim,
@@ -56,10 +63,20 @@ class KGEModule(nn.Module):
             
     def forward(self, data):
         h, r, t = data
-        x = -self.kg_module.forward(h, r, t, mode=None)
-        return x
+        logits = -self.kg_module.forward(h, r, t, mode=None)
+        if self.kge_model == "ordere":
+            logits = -logits
+        return logits
 
+    def predict(self, data):
+        h, r, t = data
+        batch_hrt = th.stack([h,r,t], dim=1)
+        logits = -self.kg_module.score_hrt(batch_hrt)
+        if self.kge_model == "ordere":
+            logits = -logits
+        return logits
 
+    
     
 
 class Model():
