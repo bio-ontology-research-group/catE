@@ -16,14 +16,14 @@ import torch as th
 @ck.command()
 @ck.option('--use-case', '-case', required=True, type=ck.Choice(["pizza"]))
 @ck.option('--graph-type', '-g', required=True, type=ck.Choice(['rdf', "owl2vec", 'onto2graph', 'cat', 'cat1', 'cat2']))
-@ck.option('--kge-model', '-kge', required=True, type=ck.Choice(['transe', 'transr', 'ordere']))
+@ck.option('--kge-model', '-kge', required=True, type=ck.Choice(['transe', 'transr', 'ordere', 'transd']))
 @ck.option('--root', '-r', required=True, type=ck.Path(exists=True))
 @ck.option('--emb-dim', '-dim', required=True, type=int, default=256)
 @ck.option('--margin', '-m', required=True, type=float, default=0.1)
 @ck.option('--weight-decay', '-wd', required=True, type=float, default = 0.0)
 @ck.option('--batch-size', '-bs', required=True, type=int, default=4096*8)
 @ck.option('--lr', '-lr', required=True, type=float, default=0.001)
-@ck.option('--num-negs', '-negs', required=True, type=int, default=2)
+@ck.option('--num-negs', '-negs', required=True, type=int, default=4)
 @ck.option('--test-batch-size', '-tbs', required=True, type=int, default=32)
 @ck.option('--epochs', '-e', required=True, type=int, default=300)
 @ck.option('--test-unsatisfiability', '-tu', is_flag=True)
@@ -114,10 +114,10 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin,
 
 def save_results(params, raw_metrics, filtered_metrics, result_dir):
     emb_dim, margin, weight_decay, batch_size, lr, num_negs = params
-    mr, mrr, h1, h10, h100, auc = raw_metrics
-    mr_f, mrr_f, h1_f, h10_f, h100_f, auc_f = filtered_metrics
+    mr, mrr, h1, h3, h10, h100, auc = raw_metrics
+    mr_f, mrr_f, h1_f, h3_f, h10_f, h100_f, auc_f = filtered_metrics
     with open(result_dir, 'a') as f:
-        line = f"{emb_dim},{margin},{weight_decay},{batch_size},{lr},{num_negs},{mr},{mrr},{h1},{h10},{h100},{auc},{mr_f},{mrr_f},{h1_f},{h10_f},{h100_f},{auc_f}\n"
+        line = f"{emb_dim},{margin},{weight_decay},{batch_size},{mr},{mrr},{h1},{h3},{h10},{h100},{auc},{mr_f},{mrr_f},{h1_f},{h3_f},{h10_f},{h100_f},{auc_f}\n"
         f.write(line)
     print("Results saved to ", result_dir)
         

@@ -54,6 +54,7 @@ class BaselineUnsat(Baseline):
         mean_rank, filtered_mean_rank = 0, 0
         mrr, filtered_mrr = 0, 0
         hits_at_1, fhits_at_1 = 0, 0
+        hits_at_3, fhits_at_3 = 0, 0
         hits_at_10, fhits_at_10 = 0, 0
         hits_at_100, fhits_at_100 = 0, 0
         ranks, filtered_ranks = dict(), dict()
@@ -95,6 +96,8 @@ class BaselineUnsat(Baseline):
                     
                     if rank == 0:
                         hits_at_1 += 1
+                    if rank < 3:
+                        hits_at_3 += 1
                     if rank < 10:
                         hits_at_10 += 1
                     if rank < 100:
@@ -106,6 +109,8 @@ class BaselineUnsat(Baseline):
 
                     if filtered_rank == 0:
                         fhits_at_1 += 1
+                    if filtered_rank < 3:
+                        fhits_at_3 += 1
                     if filtered_rank < 10:
                         fhits_at_10 += 1
                     if filtered_rank < 100:
@@ -118,6 +123,7 @@ class BaselineUnsat(Baseline):
             mean_rank /= testing_dataloader.dataset_len
             mrr /= testing_dataloader.dataset_len
             hits_at_1 /= testing_dataloader.dataset_len
+            hits_at_3 /= testing_dataloader.dataset_len
             hits_at_10 /= testing_dataloader.dataset_len
             hits_at_100 /= testing_dataloader.dataset_len
             auc = self.compute_rank_roc(ranks)
@@ -125,12 +131,13 @@ class BaselineUnsat(Baseline):
             filtered_mean_rank /= testing_dataloader.dataset_len
             filtered_mrr /= testing_dataloader.dataset_len
             fhits_at_1 /= testing_dataloader.dataset_len
+            fhits_at_3 /= testing_dataloader.dataset_len
             fhits_at_10 /= testing_dataloader.dataset_len
             fhits_at_100 /= testing_dataloader.dataset_len
             fauc = self.compute_rank_roc(filtered_ranks)
 
-            raw_metrics = (mean_rank, mrr, hits_at_1, hits_at_10, hits_at_100, auc)
-            filtered_metrics = (filtered_mean_rank, filtered_mrr, fhits_at_1, fhits_at_10, fhits_at_100, fauc)
+            raw_metrics = (mean_rank, mrr, hits_at_1, hits_at_3, hits_at_10, hits_at_100, auc)
+            filtered_metrics = (filtered_mean_rank, filtered_mrr, fhits_at_1, fhits_at_3, fhits_at_10, fhits_at_100, fauc)
         return raw_metrics, filtered_metrics
 
 

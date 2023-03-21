@@ -1,7 +1,7 @@
 import torch.nn as nn
 import os
 import pandas as pd
-from pykeen.models import TransE, TransR, ERModel
+from pykeen.models import TransE, TransR, ERModel, TransD
 from mowl.owlapi.defaults import TOP, BOT
 import logging
 import torch as th
@@ -29,7 +29,7 @@ class OrderE(TransE):
 
     def forward(self, h_indices, r_indices, t_indices, mode = None):
         h, _, t = self._get_representations(h=h_indices, r=r_indices, t=t_indices, mode=mode)
-        order_loss = th.relu(t - h)
+        order_loss = th.linalg.norm(th.relu(t - h))
         return order_loss
 
     def score_hrt(self, hrt_batch, mode = None):
@@ -60,6 +60,13 @@ class KGEModule(nn.Module):
                                      embedding_dim=self.embedding_dim,
                                      scoring_fct_norm=2,
                                      random_seed = self.random_seed)
+
+
+        elif kge_model == "transd":
+            self.kg_module =  TransD(triples_factory=self.triples_factory,
+                                     embedding_dim=self.embedding_dim,
+                                     random_seed = self.random_seed)
+
             
     def forward(self, data):
         h, r, t = data
