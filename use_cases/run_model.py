@@ -14,7 +14,7 @@ import gc
 import torch as th
 
 @ck.command()
-@ck.option('--use-case', '-case', required=True, type=ck.Choice(["pizza"]))
+@ck.option('--use-case', '-case', required=True, type=ck.Choice(["pizza", "dideo", "fobi"]))
 @ck.option('--graph-type', '-g', required=True, type=ck.Choice(['rdf', "owl2vec", 'onto2graph', 'cat', 'cat1', 'cat2']))
 @ck.option('--kge-model', '-kge', required=True, type=ck.Choice(['transe', 'transr', 'ordere', 'transd']))
 @ck.option('--root', '-r', required=True, type=ck.Path(exists=True))

@@ -9,7 +9,9 @@ from src.utils import FastTensorDataLoader, subsumption_rel_name, bot_name, top_
 from pykeen.triples import TriplesFactory
 
 prefix = {
-    "pizza": "pizza"
+    "pizza": "pizza",
+    "dideo": "dideo",
+    "fobi": "fobi",
 }
 suffix = {
     "taxonomy": "taxonomy_initial_terminal.edgelist",
