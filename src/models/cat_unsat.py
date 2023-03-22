@@ -28,7 +28,7 @@ class CatUnsat(CatModel):
         
         self.eval_relations = {subsumption_relation: 0} # this variable is defined here for the first time and it is used later in compute_ranking_metrics function
 
-        filtering_labels = np.ones((num_testing_heads, ), dtype=np.int16)
+        filtering_labels = np.ones((num_testing_heads, ), dtype=np.int32)
 
         logging.debug(f"filtering_labels.shape: {filtering_labels.shape}")
                 
@@ -89,8 +89,8 @@ class CatUnsat(CatModel):
                     preds = th.from_numpy(preds).to(self.device)
                     filtered_preds = th.from_numpy(filtered_preds).to(self.device)
 
-                    orderings = th.argsort(preds, descending=False)
-                    filtered_orderings = th.argsort(filtered_preds, descending=False)
+                    orderings = th.argsort(preds, descending=True)
+                    filtered_orderings = th.argsort(filtered_preds, descending=True) 
 
                     rank = th.where(orderings == head)[0].item()
                                                                                             
@@ -164,7 +164,7 @@ class CatUnsat(CatModel):
         tails = tails.repeat(len(self.ontology_classes_idxs),1).T
         assert (tails[0,:] == aux[0]).all(), f"{tails[0,:]}, {aux[0]}"
         tails = tails.reshape(-1)
-        assert (aux[0] == tails[:num_tails]).all(), "tails are not the same"
+        assert (aux[0] == tails[:len(self.ontology_classes)]).all(), "tails are not the same"
         rels = rels.to(self.device)
 
         

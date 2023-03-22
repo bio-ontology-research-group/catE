@@ -31,12 +31,12 @@ class OrderE(TransE):
 
     def forward(self, h_indices, r_indices, t_indices, mode = None):
         h, _, t = self._get_representations(h=h_indices, r=r_indices, t=t_indices, mode=mode)
-        order_loss = th.linalg.norm(th.relu(t - h))
-        return order_loss
+        order_loss = th.linalg.norm(th.relu(t-h), dim=1)
+        return -order_loss
 
     def score_hrt(self, hrt_batch, mode = None):
         h, r, t = self._get_representations(h=hrt_batch[:, 0], r = hrt_batch[:, 1], t=hrt_batch[:, 2], mode=mode)
-        return t - h
+        return -th.linalg.norm(th.relu(t-h), dim=1)
     
 class KGEModule(nn.Module):
     def __init__(self, kge_model, triples_factory, embedding_dim, random_seed):
@@ -72,20 +72,18 @@ class KGEModule(nn.Module):
             
     def forward(self, data):
         h, r, t = data
-        logits = -self.kg_module.forward(h, r, t, mode=None)
+        logits = self.kg_module.forward(h, r, t, mode=None)
         if self.kge_model == "ordere":
-            logits = -logits
+            logits = logits
         return logits
 
     def predict(self, data):
         h, r, t = data
         batch_hrt = th.stack([h,r,t], dim=1)
-        logits = -self.kg_module.score_hrt(batch_hrt)
-        if self.kge_model == "ordere":
-            logits = -logits
+        logits = self.kg_module.score_hrt(batch_hrt)
+       # assert (logits < 0).all()
         return logits
 
-    
     
 
 class Model():

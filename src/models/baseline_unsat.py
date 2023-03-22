@@ -43,6 +43,8 @@ class BaselineUnsat(Baseline):
                                                                 
                     graph_rel_name = self.id_to_relation[rel.item()]
                     filtering_labels[head_ont_id] = 10000
+
+        filtering_labels[self.bot_idx] = 10000
         return filtering_labels
 
 
@@ -81,8 +83,8 @@ class BaselineUnsat(Baseline):
                     preds = th.from_numpy(preds).to(self.device)
                     filtered_preds = th.from_numpy(filtered_preds).to(self.device)
 
-                    orderings = th.argsort(preds, descending=False)
-                    filtered_orderings = th.argsort(filtered_preds, descending=False)
+                    orderings = th.argsort(preds, descending=True)
+                    filtered_orderings = th.argsort(filtered_preds, descending=True)
 
                     rank = th.where(orderings == head)[0].item()
                                                                                             
@@ -142,7 +144,7 @@ class BaselineUnsat(Baseline):
 
 
     def normal_forward(self, head_idxs, rel_idxs, tail_idxs):
-          logits = self.model.forward((head_idxs, rel_idxs, tail_idxs))
+          logits = self.model.predict((head_idxs, rel_idxs, tail_idxs))
           logits = logits.reshape(-1, len(self.ontology_classes_idxs))
           return logits
 
