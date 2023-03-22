@@ -1,6 +1,7 @@
 import sys
 sys.path.append('../')
 sys.path.append("../../")
+sys.path.append("../../../")
 
 import mowl
 mowl.init_jvm("10g")
