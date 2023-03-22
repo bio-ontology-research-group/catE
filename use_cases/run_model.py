@@ -22,7 +22,7 @@ import torch as th
 @ck.option('--margin', '-m', required=True, type=float, default=0.1)
 @ck.option('--weight-decay', '-wd', required=True, type=float, default = 0.0)
 @ck.option('--batch-size', '-bs', required=True, type=int, default=4096*8)
-@ck.option('--lr', '-lr', required=True, type=float, default=0.001)
+@ck.option('--lr', '-lr', required=True, type=float, default=0.0001)
 @ck.option('--num-negs', '-negs', required=True, type=int, default=4)
 @ck.option('--test-batch-size', '-tbs', required=True, type=int, default=32)
 @ck.option('--epochs', '-e', required=True, type=int, default=300)

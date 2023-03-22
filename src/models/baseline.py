@@ -2,6 +2,7 @@ from src.models.base_model import Model, subsumption_rel_name
 
 import torch.optim as optim
 import torch as th
+import torch.nn as nn
 from tqdm import trange, tqdm
 import logging
 
@@ -11,13 +12,15 @@ class Baseline(Model):
         super().__init__(*args, **kwargs)
 
     def train(self):
-        optimizer = optim.Adam(self.model.parameters(), lr=0.000001, weight_decay = self.weight_decay)
-        min_lr = self.lr/100 
+        optimizer = optim.Adam(self.model.parameters(), lr=self.lr, weight_decay = self.weight_decay)
+        min_lr = self.lr/10
         max_lr = self.lr
         scheduler = th.optim.lr_scheduler.CyclicLR(optimizer, base_lr=min_lr,
-                                                   max_lr=max_lr, step_size_up = 30,
+                                                   max_lr=max_lr, step_size_up = 20,
                                                    cycle_momentum = False)
-                        
+
+        criterion_bpr = nn.LogSigmoid()
+        
         self.model = self.model.to(self.device)
 
         graph_dataloader = self.create_graph_train_dataloader()
@@ -46,8 +49,9 @@ class Baseline(Model):
                     data = (head, rel, neg_tail)
                     neg_logits += self.model.forward(data)
                 neg_logits /= self.num_negs
-                
-                batch_loss= th.relu(pos_logits - neg_logits + self.margin).mean()
+
+                batch_loss = -criterion_bpr(pos_logits - neg_logits - self.margin).mean()
+                #batch_loss= th.relu(pos_logits - neg_logits + self.margin).mean()
 
                 optimizer.zero_grad()
                 batch_loss.backward()
