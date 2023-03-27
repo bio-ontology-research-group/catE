@@ -12,6 +12,7 @@ prefix = {
     "pizza": "pizza",
     "dideo": "dideo",
     "fobi": "fobi",
+    "go": "go",
 }
 suffix = {
     "taxonomy": "taxonomy_initial_terminal.edgelist",
@@ -105,8 +106,18 @@ class Model():
                  seed,
                  initial_tolerance,
                  test_unsatifiability,
+                 test_deductive_inference,
+                 test_named_classes,
+                 test_existential
                  ):
 
+
+        if test_deductive_inference:
+            if test_named_classes and test_existential:
+                raise ValueError("Cannot test both named classes and existential reasoning")
+            if not test_named_classes and not test_existential:
+                raise ValueError("Must test either named classes or existential reasoning")
+        
         self.use_case = use_case
         self.graph_type = graph_type
         self.kge_model = kge_model
@@ -124,6 +135,9 @@ class Model():
         self.seed = seed
         self.initial_tolerance = initial_tolerance
         self.test_unsatifiability = test_unsatifiability
+        self.test_deductive_inference = test_deductive_inference
+        self.test_named_classes = test_named_classes
+        self.test_existential = test_existential
 
         self._triples_factory = None
         self._graph = None
