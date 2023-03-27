@@ -53,8 +53,8 @@ class CatModel(Model):
                 neg_logits /= self.num_negs
 
                 if self.kge_model == "ordere":
-                    batch_loss = (-pos_logits + th.relu(self.margin + neg_logits)).mean()
-                    #batch_loss = -criterion_bpr(pos_logits - neg_logits - self.margin).mean()
+                    #batch_loss = (-pos_logits + th.relu(self.margin + neg_logits)).mean()
+                    batch_loss = -criterion_bpr(pos_logits - neg_logits - self.margin).mean()
                 else:
                     #batch_loss = -criterion_bpr(-pos_logits + neg_logits + self.margin).mean()
                     #batch_loss = -criterion_bpr(-pos_logits + neg_logits + self.margin).mean()
