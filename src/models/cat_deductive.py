@@ -26,6 +26,18 @@ class CatDeductive(CatModel):
             raise ValueError("Must test either subsumption or existential")
 
     @property
+    def graph_path(self):
+        if self._graph_path is not None:
+            return self._graph_path
+
+        
+        graph_path = os.path.join(self.root, f"go.cat_no_initial_and_terminal.edgelist")
+        assert os.path.exists(graph_path), f"Graph file {graph_path} does not exist"
+        self._graph_path = graph_path
+        print("Graph path", graph_path)
+        return self._graph_path
+
+    @property
     def deductive_closure_path(self):
         if self.test_named_classes:
             filename = f"{self.use_case}_subsumption_closure.csv"

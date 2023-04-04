@@ -33,6 +33,7 @@ class CatModel(Model):
                                      device=self.device)
 
         for epoch in trange(self.epochs, desc=f"Training..."):
+                            
             logging.info(f"Epoch: {epoch+1}")
             self.model.train()
 

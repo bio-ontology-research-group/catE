@@ -13,6 +13,7 @@ prefix = {
     "dideo": "dideo",
     "fobi": "fobi",
     "go": "go",
+    "go_comp": "go.train"
 }
 suffix = {
     "taxonomy": "taxonomy_initial_terminal.edgelist",
@@ -101,12 +102,14 @@ class Model():
                  num_negs,
                  test_batch_size,
                  epochs,
+                 validation_file,
                  test_file,
                  device,
                  seed,
                  initial_tolerance,
                  test_unsatifiability,
                  test_deductive_inference,
+                 test_completion,
                  test_named_classes,
                  test_existential
                  ):
@@ -130,12 +133,14 @@ class Model():
         self.num_negs = num_negs
         self.test_batch_size = test_batch_size
         self.epochs = epochs
+        self.validation_file = validation_file
         self.test_file = test_file
         self.device = device
         self.seed = seed
         self.initial_tolerance = initial_tolerance
         self.test_unsatifiability = test_unsatifiability
         self.test_deductive_inference = test_deductive_inference
+        self.test_completion = test_completion
         self.test_named_classes = test_named_classes
         self.test_existential = test_existential
 
@@ -151,6 +156,10 @@ class Model():
         self._ontology_properties = None
         self._ontology_classes_idxs = None
         self._ontology_properties_idxs = None
+
+        self.able_to_validate = False
+        if validation_file is not None:
+            self.able_to_validate = True
 
         
         print("Parameters:")
@@ -240,6 +249,13 @@ class Model():
     def test_tuples_path(self):
         path = self.test_file
         assert os.path.exists(path), f"Test tuples file {path} does not exist"
+        return path
+
+
+    @property
+    def validation_tuples_path(self):
+        path = self.validation_file
+        assert os.path.exists(path), f"Validation tuples file {path} does not exist"
         return path
 
     
