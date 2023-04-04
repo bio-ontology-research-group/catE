@@ -27,11 +27,14 @@ class CatModel(Model):
 
         graph_dataloader = self.create_graph_train_dataloader()
 
+                    
         tolerance = 0
         best_loss = float("inf")
+        best_mr = float("inf")
         ont_classes_idxs = th.tensor(list(self.ontology_classes_idxs), dtype=th.long,
                                      device=self.device)
-
+        
+        
         for epoch in trange(self.epochs, desc=f"Training..."):
                             
             logging.info(f"Epoch: {epoch+1}")
@@ -73,18 +76,29 @@ class CatModel(Model):
 
             graph_loss /= len(graph_dataloader)
 
-            if best_loss > graph_loss:
-                best_loss = graph_loss
-                th.save(self.model.state_dict(), self.model_path)
-                tolerance = self.initial_tolerance
-                print("Model saved")
-            else:
-                tolerance -= 1
-                if tolerance == 0:
-                    print("Early stopping")
-                    break
+            if self.able_to_validate:
+                valid_mean_rank = self.compute_ranking_metrics(mode="validate")
+                if valid_mean_rank < best_mr:
+                    best_mr = valid_mean_rank
+                    th.save(self.model.state_dict(), self.model_path)
+                    tolerance = self.initial_tolerance+1
+                    print("Model saved")
+                    print(f"Training loss: {graph_loss:.6f}\tValidation mean rank: {valid_mean_rank:.6f}")
 
-            print(f"Train loss: {graph_loss:.6f}\n")
+            else:   
+                if best_loss > graph_loss:
+                    best_loss = graph_loss
+                    th.save(self.model.state_dict(), self.model_path)
+                    tolerance = self.initial_tolerance+1
+                    print("Model saved")
+                    print(f"Training loss: {graph_loss:.6f}\n")
+                
+            tolerance -= 1
+            if tolerance == 0:
+                print("Early stopping")
+                break
+
+                
 
 
     
