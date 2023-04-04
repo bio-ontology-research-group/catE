@@ -13,6 +13,7 @@ prefix = {
     "dideo": "dideo",
     "fobi": "fobi",
     "go": "go",
+    "go_comp": "go.train"
 }
 suffix = {
     "taxonomy": "taxonomy_initial_terminal.edgelist",
@@ -107,6 +108,7 @@ class Model():
                  initial_tolerance,
                  test_unsatifiability,
                  test_deductive_inference,
+                 test_completion,
                  test_named_classes,
                  test_existential
                  ):
@@ -136,6 +138,7 @@ class Model():
         self.initial_tolerance = initial_tolerance
         self.test_unsatifiability = test_unsatifiability
         self.test_deductive_inference = test_deductive_inference
+        self.test_completion = test_completion
         self.test_named_classes = test_named_classes
         self.test_existential = test_existential
 

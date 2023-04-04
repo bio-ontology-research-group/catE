@@ -15,42 +15,49 @@ subsumption_rel_name = {
     "cat2": "http://arrow"
 }
 
-class CatDeductive(CatModel):
+class CatCompletion(CatModel):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.test_named_classes and self.test_existential:
-            raise ValueError("Cannot test both subsumption and existential")
-        if not self.test_named_classes and not self.test_existential:
-            raise ValueError("Must test either subsumption or existential")
-
+        self._ancestors_path = None
+        if not self.test_completion:
+            raise ValueError("test_completion must be True")
+        
     @property
     def graph_path(self):
         if self._graph_path is not None:
             return self._graph_path
 
         
-        graph_path = os.path.join(self.root, f"go.cat_no_initial_and_terminal.edgelist")
+        graph_path = os.path.join(self.root, f"go.train.cat.edgelist")
         assert os.path.exists(graph_path), f"Graph file {graph_path} does not exist"
         self._graph_path = graph_path
         print("Graph path", graph_path)
         return self._graph_path
 
     @property
-    def deductive_closure_path(self):
-        if self.test_named_classes:
-            filename = f"{self.use_case}_subsumption_closure.csv"
-            path = os.path.join(self.root, filename)
-            return path
-        elif self.test_existential:
-            filename = f"{self.use_case}_existential_subsumption_closure.csv"
-            path = os.path.join(self.root, filename)
-            return path
-    
+    def ancestors_path(self):
+        if self._ancestors_path is not None:
+            return self._ancestors_path
+        filename = f"inferred_ancestors.txt"
+        path = os.path.join(self.root, filename)
+        assert os.path.exists(path)
+        self._ancestors_path = path
+        return self._ancestors_path
 
+    
     def create_subsumption_dataloader(self, tuples_path, batch_size):
-        tuples = pd.read_csv(tuples_path, sep=",", header=None)
+        data = []
+        with open(tuples_path) as f:
+            for line in f.readlines():
+                line = line.rstrip("\n").split(",")
+                head = line[0]
+                tail = line[1:]
+                for t in tail:
+                    data.append((head, t))
+        tuples = pd.DataFrame(data, columns=["head", "tail"])
+            
         num_cols = tuples.shape[1]
 
                 
@@ -66,10 +73,6 @@ class CatDeductive(CatModel):
         tuples["head"] = tuples["head"].apply(lambda x: 'owl:Thing' if x == "http://www.w3.org/2002/07/owl#Thing" else x)
         tuples["tail"] = tuples["tail"].apply(lambda x: 'owl:Nothing' if x == "http://www.w3.org/2002/07/owl#Nothing" else x)
         tuples["tail"] = tuples["tail"].apply(lambda x: 'owl:Thing' if x == "http://www.w3.org/2002/07/owl#Thing" else x)
-        
-
-
-
         
         heads = [self.node_to_id[h] for h in tuples["head"]]
         tails = [self.node_to_id[t] for t in tuples["tail"]]
@@ -94,7 +97,7 @@ class CatDeductive(CatModel):
         return dataloader
 
         
-    def get_filtering_labels(self, named_classes, existential_axioms, both_quantifiers):
+    def get_filtering_labels(self):
         logging.info("Getting predictions and labels")
 
         num_testing_heads = len(self.ontology_classes_idxs)
@@ -103,14 +106,6 @@ class CatDeductive(CatModel):
         subsumption_relation = subsumption_rel_name[self.graph_type]
         
         self.eval_relations = {subsumption_relation: 0} # this variable is defined here for the first time and it is used later in compute_ranking_metrics function
-
-        if existential_axioms:
-            num_relations = len(self.ontology_relations_idxs)
-            assert num_relations > 1, f"Number of relations is {num_relations}"
-
-            self.eval_relations = dict(zip(self.ontology_relations, self.ontology_relations_idxs))
-            if both_quantifiers:
-                num_testing_tails *= 2
 
         num_eval_relations = len(self.eval_relations)
         filtering_labels = np.ones((num_eval_relations, num_testing_heads, num_testing_tails), dtype=np.int16)
@@ -121,7 +116,7 @@ class CatDeductive(CatModel):
         all_tail_idxs = self.ontology_classes_idxs.to(self.device)
         eval_rel_idx = None
 
-        testing_dataloader = self.create_subsumption_dataloader(self.deductive_closure_path, batch_size=self.test_batch_size)
+        testing_dataloader = self.create_subsumption_dataloader(self.ancestors_path, batch_size=self.test_batch_size)
         with th.no_grad():
             for head_idxs, rel_idxs, tail_idxs in tqdm(testing_dataloader, desc="Getting labels"):
                 head_idxs = head_idxs.to(self.device)
@@ -130,10 +125,7 @@ class CatDeductive(CatModel):
                     head_ont_id = th.where(self.ontology_classes_idxs == head_graph_id)[0]
                     rel = rel_idxs[i]
 
-                    if existential_axioms:
-                        rel_name = self.id_to_class[rel.item()]
-                    else:
-                        rel_name = self.id_to_relation[rel.item()]
+                    rel_name = self.id_to_relation[rel.item()]
 
                     rel_idx = self.eval_relations[rel_name]
                     tail_graph_id = tail_idxs[i]
@@ -143,7 +135,7 @@ class CatDeductive(CatModel):
         return filtering_labels
 
 
-    def compute_ranking_metrics(self, filtering_labels, named_classes, existential_axioms, both_quantifiers):
+    def compute_ranking_metrics(self, filtering_labels):
         print(f"Loading best model from {self.model_path}")
         self.model.load_state_dict(th.load(self.model_path))
         self.model = self.model.to(self.device)
@@ -160,7 +152,7 @@ class CatDeductive(CatModel):
         with th.no_grad():
             for head_idxs, rel_idxs, tail_idxs in tqdm(testing_dataloader, desc="Computing metrics..."):
 
-                predictions = self.predict(head_idxs, rel_idxs, tail_idxs, named_classes, existential_axioms, both_quantifiers)
+                predictions = self.predict(head_idxs, rel_idxs, tail_idxs)
                 
                 for i, graph_head in enumerate(head_idxs):
                     head = th.where(self.ontology_classes_idxs == graph_head)[0]
@@ -169,10 +161,8 @@ class CatDeductive(CatModel):
                     tail = th.where(self.ontology_classes_idxs == graph_tail)[0]
 
                     rel = rel_idxs[i]
-                    if existential_axioms:
-                        eval_rel = self.eval_relations[self.id_to_class[rel.item()]]
-                    else:
-                        eval_rel = self.eval_relations[self.id_to_relation[rel.item()]]
+                                                                
+                    eval_rel = self.eval_relations[self.id_to_relation[rel.item()]]
                         
                     preds = predictions[i].cpu().numpy()
 
@@ -241,33 +231,13 @@ class CatDeductive(CatModel):
             raw_metrics = (mean_rank, mrr, hits_at_1, hits_at_3, hits_at_10, hits_at_100, auc)
             filtered_metrics = (filtered_mean_rank, filtered_mrr, fhits_at_1, fhits_at_3, fhits_at_10, fhits_at_100, fauc)
         return raw_metrics, filtered_metrics
-
-
-    def get_existential_tails(self, rel_idxs, tail_idxs):
-        existential_tails = []
-        for rel, tail in zip(rel_idxs, tail_idxs):
-            rel_name = self.id_to_class[rel.item()]
-            tail_name = self.id_to_class[tail.item()]
-            actual_tail_name = f"DOMAIN_{rel_name}_under_{rel_name} some {tail_name}"
-            tail_idx = self.class_to_id[actual_tail_name]
-            existential_tails.append(tail_idx)
-
-        return th.tensor(existential_tails).to(self.device)
-    
+                                                                                     
     def normal_forward(self, head_idxs, rel_idxs, tail_idxs):
         logits = self.model.predict((head_idxs, rel_idxs, tail_idxs))
         logits = logits.reshape(-1, len(self.ontology_classes_idxs))
         return logits
 
-    def existential_forward(self, head_idxs, rel_idxs, tail_idxs, existential_axioms, both_quantifiers):
-        actual_tails = self.get_existential_tails(rel_idxs, tail_idxs)
-        actual_rel_idx = self.rel_to_id["http://arrow"]
-        actual_rels = actual_rel_idx * th.ones_like(rel_idxs)
-        logits = self.model.predict((head_idxs, actual_rels, actual_tails))
-        logits = logits.reshape(-1, len(self.ontology_classes_idxs))
-        return logits
-    
-    def predict(self, heads, rels, tails, named_classes, existential_axioms, both_quantifiers):
+    def predict(self, heads, rels, tails):
 
         aux = heads.to(self.device)
         num_heads = len(heads)
@@ -283,20 +253,17 @@ class CatDeductive(CatModel):
                                                 
         eval_tails = self.ontology_classes_idxs.repeat(num_heads)
 
-        if existential_axioms:
-            logits = self.existential_forward(heads, rels, eval_tails, both_quantifiers)
-        else:
-            logits = self.normal_forward(heads, rels, eval_tails)
+        logits = self.normal_forward(heads, rels, eval_tails)
 
         return logits
         
 
 
     
-    def test(self, test_named_classes, test_existential, test_both_quantifiers):
-        logging.info("Testing unsatisfiability...")
-        filtering_labels = self.get_filtering_labels(test_named_classes, test_existential, test_both_quantifiers)
-        raw_metrics, filtered_metrics = self.compute_ranking_metrics(filtering_labels, test_named_classes, test_existential, test_both_quantifiers)
+    def test(self):
+        logging.info("Testing ontology completion...")
+        filtering_labels = self.get_filtering_labels()
+        raw_metrics, filtered_metrics = self.compute_ranking_metrics(filtering_labels)
         return raw_metrics, filtered_metrics
 
     def compute_rank_roc(self, ranks):

@@ -1,1 +1,1 @@
-python ../run_model.py -case go -kge transe -g cat -r ../go/data -dim 16 -m 0.4 -wd 0.0001 -bs 16384 -lr 0.001 -tbs 8 -e 4000 -d cuda -rf result_go_cat_deductive_transe.csv -tf ../go/data/go_subsumption_closure_filtered.csv -td -tn
+python ../run_model.py -case go -kge transe -g cat -r ../go/data -dim 16 -m 0.4 -wd 0.000 -bs 8192 -lr 0.0001 -tbs 8 -e 4000 -d cuda -rf result_go_cat_deductive_transe.csv -tf ../go/data/go_subsumption_closure_filtered.csv -td -tn
