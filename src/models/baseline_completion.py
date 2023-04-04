@@ -1,19 +1,12 @@
-from src.models.cat import CatModel
+from src.models.baseline import Baseline
+from src.utils import subsumption_rel_name
 import logging
-
 import numpy as np
 import torch as th
 from tqdm import tqdm
-from mowl.owlapi.defaults import BOT
 import os
 import pandas as pd
-from src.utils import FastTensorDataLoader
-
-subsumption_rel_name = {
-    "cat": "http://arrow",
-    "cat1": "http://arrow",
-    "cat2": "http://arrow"
-}
+from src.utils import FastTensorDataLoader, bot_name, top_name
 
 
 prefix = {
@@ -25,14 +18,13 @@ prefix = {
     "foodon_comp": "foodon-merged.train"
 }
 
-class CatCompletion(CatModel):
+
+class BaselineCompletion(Baseline):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._ancestors_path = None
-        if not self.test_completion:
-            raise ValueError("test_completion must be True")
         
     @property
     def graph_path(self):
@@ -40,7 +32,7 @@ class CatCompletion(CatModel):
             return self._graph_path
 
         
-        graph_path = os.path.join(self.root, f"{prefix[self.use_case]}.cat.edgelist")
+        graph_path = os.path.join(self.root, f"{prefix[self.use_case]}.{self.graph_type}.edgelist")
         assert os.path.exists(graph_path), f"Graph file {graph_path} does not exist"
         self._graph_path = graph_path
         print("Graph path", graph_path)
@@ -79,10 +71,10 @@ class CatCompletion(CatModel):
             raise ValueError(f"Invalid number of columns in {tuples_path}")
 
         tuples = tuples.drop_duplicates()
-        tuples["head"] = tuples["head"].apply(lambda x: 'owl:Nothing' if x == "http://www.w3.org/2002/07/owl#Nothing" else x)
-        tuples["head"] = tuples["head"].apply(lambda x: 'owl:Thing' if x == "http://www.w3.org/2002/07/owl#Thing" else x)
-        tuples["tail"] = tuples["tail"].apply(lambda x: 'owl:Nothing' if x == "http://www.w3.org/2002/07/owl#Nothing" else x)
-        tuples["tail"] = tuples["tail"].apply(lambda x: 'owl:Thing' if x == "http://www.w3.org/2002/07/owl#Thing" else x)
+        tuples["head"] = tuples["head"].apply(lambda x: bot_name[self.graph_type] if x == "http://www.w3.org/2002/07/owl#Nothing" else x)
+        tuples["head"] = tuples["head"].apply(lambda x: top_name[self.graph_type] if x == "http://www.w3.org/2002/07/owl#Thing" else x)
+        tuples["tail"] = tuples["tail"].apply(lambda x: bot_name[self.graph_type] if x == "http://www.w3.org/2002/07/owl#Nothing" else x)
+        tuples["tail"] = tuples["tail"].apply(lambda x: top_name[self.graph_type] if x == "http://www.w3.org/2002/07/owl#Thing" else x)
         
         heads = [self.node_to_id[h] for h in tuples["head"]]
         tails = [self.node_to_id[t] for t in tuples["tail"]]
@@ -96,7 +88,6 @@ class CatCompletion(CatModel):
             rel_idx = self.relation_to_id[subsumption_rel_name[self.graph_type]]
             rels = rel_idx * th.ones_like(heads)
         else:
-            
             rels = [self.relation_to_id[r] for r in tuples["relation"]]
             rels = th.tensor(rels, dtype=th.long)
         
@@ -306,3 +297,4 @@ class CatCompletion(CatModel):
         auc_y.append(1)
         auc = np.trapz(auc_y, auc_x) / n_tails
         return auc
+             
