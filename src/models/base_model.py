@@ -13,7 +13,8 @@ prefix = {
     "dideo": "dideo",
     "fobi": "fobi",
     "go": "go",
-    "go_comp": "go.train"
+    "go_comp": "go.train",
+    "foodon_comp": "foodon-merged.train"
 }
 suffix = {
     "taxonomy": "taxonomy_initial_terminal.edgelist",

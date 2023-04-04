@@ -9,6 +9,7 @@ import click as ck
 import os
 from src.models.baseline import Baseline
 from src.models.baseline_unsat import BaselineUnsat
+from src.models.baseline_completion import BaselineCompletion
 from src.models.cat_unsat import CatUnsat
 from src.models.cat_deductive import CatDeductive
 from src.models.cat_completion import CatCompletion
@@ -17,7 +18,7 @@ import gc
 import torch as th
 
 @ck.command()
-@ck.option('--use-case', '-case', required=True, type=ck.Choice(["pizza", "dideo", "fobi", "go", "go_comp"]))
+@ck.option('--use-case', '-case', required=True, type=ck.Choice(["pizza", "dideo", "fobi", "go", "go_comp", "foodon_comp"]))
 @ck.option('--graph-type', '-g', required=True, type=ck.Choice(['rdf', "owl2vec", 'onto2graph', 'cat', 'cat1', 'cat2']))
 @ck.option('--kge-model', '-kge', required=True, type=ck.Choice(['transe', 'transr', 'ordere', 'transd']))
 @ck.option('--root', '-r', required=True, type=ck.Path(exists=True))
