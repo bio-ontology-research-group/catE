@@ -135,20 +135,38 @@ class CatCompletion(CatModel):
         return filtering_labels
 
 
-    def compute_ranking_metrics(self, filtering_labels):
-        print(f"Loading best model from {self.model_path}")
-        self.model.load_state_dict(th.load(self.model_path))
-        self.model = self.model.to(self.device)
+    def compute_ranking_metrics(self, filtering_labels=None, mode="test"):
+        if not mode in ["test", "validate"]:
+            raise ValueError(f"Invalid mode {mode}")
+
+        if filtering_labels is None and mode == "test":
+            raise ValueError("filtering_labels cannot be None when mode is test")
+
+        if filtering_labels is not None and mode == "validate":
+            raise ValueError("filtering_labels must be None when mode is validate")
+
+        subsumption_relation = subsumption_rel_name[self.graph_type]
+        self.eval_relations = {subsumption_relation: 0}
+        
+
+        if mode == "test":
+            print(f"Loading best model from {self.model_path}")
+            self.model.load_state_dict(th.load(self.model_path))
+            self.model = self.model.to(self.device)
+
         self.model.eval()
         mean_rank, filtered_mean_rank = 0, 0
-        mrr, filtered_mrr = 0, 0
-        hits_at_1, fhits_at_1 = 0, 0
-        hits_at_3, fhits_at_3 = 0, 0
-        hits_at_10, fhits_at_10 = 0, 0
-        hits_at_100, fhits_at_100 = 0, 0
         ranks, filtered_ranks = dict(), dict()
+        if mode == "test":
+            mrr, filtered_mrr = 0, 0
+            hits_at_1, fhits_at_1 = 0, 0
+            hits_at_3, fhits_at_3 = 0, 0
+            hits_at_10, fhits_at_10 = 0, 0
+            hits_at_100, fhits_at_100 = 0, 0
 
-        testing_dataloader = self.create_subsumption_dataloader(self.test_tuples_path, batch_size=self.test_batch_size)
+        tuples_path = self.test_tuples_path if mode == "test" else self.validation_tuples_path
+
+        testing_dataloader = self.create_subsumption_dataloader(tuples_path, batch_size=self.test_batch_size)
         with th.no_grad():
             for head_idxs, rel_idxs, tail_idxs in tqdm(testing_dataloader, desc="Computing metrics..."):
 
@@ -164,73 +182,73 @@ class CatCompletion(CatModel):
                                                                 
                     eval_rel = self.eval_relations[self.id_to_relation[rel.item()]]
                         
-                    preds = predictions[i].cpu().numpy()
-
-                    filt_labels = filtering_labels[eval_rel, head, :]
-                    filt_labels[tail] = 1
-                    filtered_preds = preds * filt_labels
-                                                            
-
-                    preds = th.from_numpy(preds).to(self.device)
-                    filtered_preds = th.from_numpy(filtered_preds).to(self.device)
-
+                    preds = predictions[i]
+                    #preds = th.from_numpy(preds).to(self.device)
                     orderings = th.argsort(preds, descending=True)
-                    filtered_orderings = th.argsort(filtered_preds, descending=True) 
-
                     rank = th.where(orderings == tail)[0].item()
-                    filtered_rank = th.where(filtered_orderings == tail)[0].item()
-                    
                     mean_rank += rank
-                    filtered_mean_rank += filtered_rank
-                    
-                    mrr += 1/(rank+1)
-                    filtered_mrr += 1/(filtered_rank+1)
-                    
-                    if rank == 0:
-                        hits_at_1 += 1
-                    if rank < 3:
-                        hits_at_3 += 1
-                    if rank < 10:
-                        hits_at_10 += 1
-                    if rank < 100:
-                        hits_at_100 += 1
-
                     if rank not in ranks:
                         ranks[rank] = 0
                     ranks[rank] += 1
 
-                    if filtered_rank == 0:
-                        fhits_at_1 += 1
-                    if filtered_rank < 3:
-                        fhits_at_3 += 1
-                    if filtered_rank < 10:
-                        fhits_at_10 += 1
-                    if filtered_rank < 100:
-                        fhits_at_100 += 1
+                    if mode == "test":
+                        filt_labels = filtering_labels[eval_rel, head, :]
+                        filt_labels[tail] = 1
+                        filtered_preds = preds.cpu().numpy() * filt_labels
+                        filtered_preds = th.from_numpy(filtered_preds).to(self.device)
+                        filtered_orderings = th.argsort(filtered_preds, descending=True) 
+                        filtered_rank = th.where(filtered_orderings == tail)[0].item()
+                        filtered_mean_rank += filtered_rank
+                    
+                        mrr += 1/(rank+1)
+                        filtered_mrr += 1/(filtered_rank+1)
+                    
+                        if rank == 0:
+                            hits_at_1 += 1
+                        if rank < 3:
+                            hits_at_3 += 1
+                        if rank < 10:
+                            hits_at_10 += 1
+                        if rank < 100:
+                            hits_at_100 += 1
 
-                    if filtered_rank not in filtered_ranks:
-                        filtered_ranks[filtered_rank] = 0
-                    filtered_ranks[filtered_rank] += 1
+                        if filtered_rank == 0:
+                            fhits_at_1 += 1
+                        if filtered_rank < 3:
+                            fhits_at_3 += 1
+                        if filtered_rank < 10:
+                            fhits_at_10 += 1
+                        if filtered_rank < 100:
+                            fhits_at_100 += 1
+
+                        if filtered_rank not in filtered_ranks:
+                            filtered_ranks[filtered_rank] = 0
+                        filtered_ranks[filtered_rank] += 1
 
             mean_rank /= testing_dataloader.dataset_len
-            mrr /= testing_dataloader.dataset_len
-            hits_at_1 /= testing_dataloader.dataset_len
-            hits_at_3 /= testing_dataloader.dataset_len
-            hits_at_10 /= testing_dataloader.dataset_len
-            hits_at_100 /= testing_dataloader.dataset_len
-            auc = self.compute_rank_roc(ranks)
+            if mode == "test":
+                mrr /= testing_dataloader.dataset_len
+                hits_at_1 /= testing_dataloader.dataset_len
+                hits_at_3 /= testing_dataloader.dataset_len
+                hits_at_10 /= testing_dataloader.dataset_len
+                hits_at_100 /= testing_dataloader.dataset_len
+                auc = self.compute_rank_roc(ranks)
 
-            filtered_mean_rank /= testing_dataloader.dataset_len
-            filtered_mrr /= testing_dataloader.dataset_len
-            fhits_at_1 /= testing_dataloader.dataset_len
-            fhits_at_3 /= testing_dataloader.dataset_len
-            fhits_at_10 /= testing_dataloader.dataset_len
-            fhits_at_100 /= testing_dataloader.dataset_len
-            fauc = self.compute_rank_roc(filtered_ranks)
+                filtered_mean_rank /= testing_dataloader.dataset_len
+                filtered_mrr /= testing_dataloader.dataset_len
+                fhits_at_1 /= testing_dataloader.dataset_len
+                fhits_at_3 /= testing_dataloader.dataset_len
+                fhits_at_10 /= testing_dataloader.dataset_len
+                fhits_at_100 /= testing_dataloader.dataset_len
+                fauc = self.compute_rank_roc(filtered_ranks)
 
-            raw_metrics = (mean_rank, mrr, hits_at_1, hits_at_3, hits_at_10, hits_at_100, auc)
-            filtered_metrics = (filtered_mean_rank, filtered_mrr, fhits_at_1, fhits_at_3, fhits_at_10, fhits_at_100, fauc)
-        return raw_metrics, filtered_metrics
+                raw_metrics = (mean_rank, mrr, hits_at_1, hits_at_3, hits_at_10, hits_at_100, auc)
+                filtered_metrics = (filtered_mean_rank, filtered_mrr, fhits_at_1, fhits_at_3, fhits_at_10, fhits_at_100, fauc)
+        if mode == "test":
+            return raw_metrics, filtered_metrics
+        else:
+            return mean_rank
+        
                                                                                      
     def normal_forward(self, head_idxs, rel_idxs, tail_idxs):
         logits = self.model.predict((head_idxs, rel_idxs, tail_idxs))

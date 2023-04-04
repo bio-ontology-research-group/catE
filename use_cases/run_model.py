@@ -34,23 +34,17 @@ import torch as th
 @ck.option('--test-named-classes', '-tn', is_flag=True)
 @ck.option('--test-existentials', '-te', is_flag=True)
 @ck.option('--test-both-quantifiers', '-tbq', is_flag=True)
-@ck.option('--test_file', '-tf', required=True, type=ck.Path(exists=True))
+@ck.option('--validation-file', '-vf', type=ck.Path(exists=True), default=None)
+@ck.option('--test-file', '-tf', required=True, type=ck.Path(exists=True))
 @ck.option('--device', '-d', required=True, type=ck.Choice(['cpu', 'cuda']))
 @ck.option('--seed', '-s', required=True, type=int, default=42)
 @ck.option("--only_train", '-otr', is_flag=True)
 @ck.option("--only_test", '-ot', is_flag=True)
 @ck.option('--result-filename', '-rf', required=True)
-def main(use_case, graph_type, kge_model, root, emb_dim, margin,
-         weight_decay, batch_size, lr, num_negs, test_batch_size,
-         epochs,
-         test_unsatisfiability,
-         test_deductive_inference,
-         test_ontology_completion,
-         test_named_classes,
-         test_existentials,
-         test_both_quantifiers,
-         test_file, device, seed,
-         only_train, only_test, result_filename):
+def main(use_case, graph_type, kge_model, root, emb_dim, margin, weight_decay, batch_size, lr, num_negs,
+         test_batch_size, epochs, test_unsatisfiability, test_deductive_inference, test_ontology_completion,
+         test_named_classes, test_existentials, test_both_quantifiers, validation_file, test_file, device,
+         seed, only_train, only_test, result_filename):
 
     if not result_filename.endswith('.csv'):
         raise ValueError("For convenience, please specify a csv file as result_filename")
@@ -79,6 +73,7 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin,
     print("\ttest_batch_size: ", test_batch_size)
     print("\tepochs: ", epochs)
     print("\ttest_unsatisfiability: ", test_unsatisfiability)
+    print("\tvalidation_file: ", validation_file)
     print("\ttest_file: ", test_file)
     print("\tdevice: ", device)
     print("\tseed: ", seed)
@@ -115,6 +110,7 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin,
                   num_negs,
                   test_batch_size,
                   epochs,
+                  validation_file,
                   test_file,
                   device,
                   seed,
