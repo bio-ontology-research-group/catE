@@ -25,6 +25,14 @@ prefix = {
     "foodon_comp": "foodon-merged.train"
 }
 
+suffix = {
+    "cat": "cat.edgelist",
+    "cat1": "cat.s1.edgelist",
+    "cat2": "cat.s1.edgelist",
+    
+}
+
+
 class CatCompletion(CatModel):
 
     def __init__(self, *args, **kwargs):
@@ -40,7 +48,7 @@ class CatCompletion(CatModel):
             return self._graph_path
 
         
-        graph_path = os.path.join(self.root, f"{prefix[self.use_case]}.cat.edgelist")
+        graph_path = os.path.join(self.root, f"{prefix[self.use_case]}.{suffix[self.graph_type]}")
         assert os.path.exists(graph_path), f"Graph file {graph_path} does not exist"
         self._graph_path = graph_path
         print("Graph path", graph_path)
