@@ -34,6 +34,28 @@ top_name = {
 }
 
 
+
+prefix = {
+    "pizza": "pizza",
+    "dideo": "dideo",
+    "fobi": "fobi",
+    "go": "go",
+    "go_comp": "go.train",
+    "foodon_comp": "foodon-merged.train"
+}
+suffix = {
+    "taxonomy": "taxonomy_initial_terminal.edgelist",
+    "onto2graph": "onto2graph_initial_terminal.edgelist",
+    "owl2vec": "owl2vec_initial_terminal.edgelist",
+    "rdf": "rdf_initial_terminal.edgelist",
+    "cat": "cat.edgelist",
+    "cat1": "cat.s1.edgelist",
+    "cat2": "cat.s1.edgelist",
+    
+}
+
+
+
     
 
 def seed_everything(seed=42):

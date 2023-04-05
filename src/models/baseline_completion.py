@@ -18,6 +18,16 @@ prefix = {
     "foodon_comp": "foodon-merged.train"
 }
 
+suffix = {
+    "onto2graph": "onto2graph_no_leakage.edgelist",
+    "owl2vec": "owl2vec_no_leakage.edgelist",
+    "rdf": "rdf.edgelist",
+    "cat": "cat.edgelist",
+    "cat1": "cat.s1.edgelist",
+    "cat2": "cat.s2.edgelist",
+    
+}
+
 
 class BaselineCompletion(Baseline):
 
@@ -32,7 +42,7 @@ class BaselineCompletion(Baseline):
             return self._graph_path
 
         
-        graph_path = os.path.join(self.root, f"{prefix[self.use_case]}.{self.graph_type}.edgelist")
+        graph_path = os.path.join(self.root, f"{prefix[self.use_case]}.{suffix[self.graph_type]}")
         assert os.path.exists(graph_path), f"Graph file {graph_path} does not exist"
         self._graph_path = graph_path
         print("Graph path", graph_path)

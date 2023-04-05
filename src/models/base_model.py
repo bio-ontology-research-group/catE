@@ -5,28 +5,8 @@ from pykeen.models import TransE, TransR, ERModel, TransD
 from mowl.owlapi.defaults import TOP, BOT
 import logging
 import torch as th
-from src.utils import FastTensorDataLoader, subsumption_rel_name, bot_name, top_name
+from src.utils import FastTensorDataLoader, subsumption_rel_name, bot_name, top_name, prefix, suffix
 from pykeen.triples import TriplesFactory
-
-prefix = {
-    "pizza": "pizza",
-    "dideo": "dideo",
-    "fobi": "fobi",
-    "go": "go",
-    "go_comp": "go.train",
-    "foodon_comp": "foodon-merged.train"
-}
-suffix = {
-    "taxonomy": "taxonomy_initial_terminal.edgelist",
-    "onto2graph": "onto2graph_initial_terminal.edgelist",
-    "owl2vec": "owl2vec_initial_terminal.edgelist",
-    "rdf": "rdf_initial_terminal.edgelist",
-    "cat": "cat.edgelist",
-    "cat1": "cat.s1.edgelist",
-    "cat2": "cat.s1.edgelist",
-    
-}
-
 
 class OrderE(TransE):
     def __init__(self, *args, **kwargs):
