@@ -22,6 +22,7 @@ suffix = {
     "owl2vec": "owl2vec_initial_terminal.edgelist",
     "rdf": "rdf_initial_terminal.edgelist",
     "cat": "cat.edgelist",
+    "catnit": "cat_no_initial_and_terminal.edgelist",
     "cat1": "cat.s1.edgelist",
     "cat2": "cat.s1.edgelist",
     

@@ -18,7 +18,7 @@ import torch as th
 
 @ck.command()
 @ck.option('--use-case', '-case', required=True, type=ck.Choice(["pizza", "dideo", "fobi", "go", "go_comp", "foodon_comp"]))
-@ck.option('--graph-type', '-g', required=True, type=ck.Choice(['rdf', "owl2vec", 'onto2graph', 'cat', 'cat1', 'cat2']))
+@ck.option('--graph-type', '-g', required=True, type=ck.Choice(['rdf', "owl2vec", 'onto2graph', 'cat', 'cat1', 'cat2', 'catnit']))
 @ck.option('--kge-model', '-kge', required=True, type=ck.Choice(['transe', 'transr', 'ordere', 'transd']))
 @ck.option('--root', '-r', required=True, type=ck.Path(exists=True))
 @ck.option('--emb-dim', '-dim', required=True, type=int, default=256)
@@ -84,15 +84,15 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin, weight_decay, b
     seed_everything(seed)
 
     if test_unsatisfiability:
-        if graph_type in ["cat", "cat1", "cat2"]:
+        if "cat" in graph_type:
             Model = CatUnsat
         else:
             Model = BaselineUnsat
     elif test_deductive_inference:
-        if graph_type in ["cat", "cat1", "cat2"]:
+        if "cat" in graph_type:
             Model = CatDeductive
     elif test_ontology_completion:
-        if graph_type in ["cat", "cat1", "cat2"]:
+        if "cat" in graph_type:
             Model = CatCompletion
         else:
             Model = BaselineCompletion

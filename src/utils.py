@@ -11,7 +11,8 @@ subsumption_rel_name = {
     "rdf": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
     "cat": "http://arrow",
     "cat1": "http://arrow",
-    "cat2": "http://arrow"
+    "cat2": "http://arrow",
+    "catnit": "http://arrow"
 }
 
 bot_name = {
@@ -20,7 +21,8 @@ bot_name = {
     "rdf": "http://www.w3.org/2002/07/owl#Nothing",
     "cat": "owl:Nothing",
     "cat1": "owl:Nothing",
-    "cat2": "owl:Nothing"
+    "cat2": "owl:Nothing",
+    "catnit": "owl:Nothing"
     
 }
 
@@ -30,7 +32,8 @@ top_name = {
     "rdf": "http://www.w3.org/2002/07/owl#Thing",
     "cat": "owl:Thing",
     "cat1": "owl:Thing",
-    "cat2": "owl:Thing" 
+    "cat2": "owl:Thing",
+    "catnit": "owl:Thing"
 }
 
 
