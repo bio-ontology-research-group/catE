@@ -7,30 +7,22 @@ from tqdm import tqdm
 from mowl.owlapi.defaults import BOT
 import os
 import pandas as pd
-from src.utils import FastTensorDataLoader
+from src.utils import FastTensorDataLoader, suffix
 
 subsumption_rel_name = {
     "cat": "http://arrow",
     "cat1": "http://arrow",
-    "cat2": "http://arrow"
+    "cat2": "http://arrow",
+    
 }
 
 
 prefix = {
-    "pizza": "pizza",
-    "dideo": "dideo",
-    "fobi": "fobi",
-    "go": "go",
     "go_comp": "go.train",
     "foodon_comp": "foodon-merged.train"
 }
 
-suffix = {
-    "cat": "cat.edgelist",
-    "cat1": "cat.s1.edgelist",
-    "cat2": "cat.s1.edgelist",
-    
-}
+
 
 
 class CatCompletion(CatModel):

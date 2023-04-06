@@ -2,7 +2,6 @@ import sys
 import pandas as pd
 
 input_file = sys.argv[1]
-
 if not input_file.endswith('.edgelist'):
     raise ValueError('Input file must be an edgelist')
 

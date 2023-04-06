@@ -47,13 +47,13 @@ prefix = {
     "foodon_comp": "foodon-merged.train"
 }
 suffix = {
-    "taxonomy": "taxonomy_initial_terminal.edgelist",
-    "onto2graph": "onto2graph_initial_terminal.edgelist",
-    "owl2vec": "owl2vec_initial_terminal.edgelist",
-    "rdf": "rdf_initial_terminal.edgelist",
-    "cat": "cat.edgelist",
-    "cat1": "cat.s1.edgelist",
-    "cat2": "cat.s1.edgelist",
+    "taxonomy": "taxonomy_initial_terminal_no_leakage.edgelist",
+    "onto2graph": "onto2graph_initial_terminal_no_leakage.edgelist",
+    "owl2vec": "owl2vec_initial_terminal_no_leakage.edgelist",
+    "rdf": "rdf_initial_terminal_no_leakage.edgelist",
+    "cat": "cat_initial_terminal_no_leakage.edgelist",
+    "cat1": "cat.s1_initial_terminal_no_leakage.edgelist",
+    "cat2": "cat.s2_initial_terminal_no_leakage.edgelist",
     
 }
 

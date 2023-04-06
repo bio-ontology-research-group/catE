@@ -1,7 +1,7 @@
 import torch.nn as nn
 import os
 import pandas as pd
-from pykeen.models import TransE, TransR, ERModel, TransD
+from pykeen.models import TransE, DistMult, ConvKB, ERModel
 from mowl.owlapi.defaults import TOP, BOT
 import logging
 import torch as th
@@ -35,10 +35,14 @@ class KGEModule(nn.Module):
                                      embedding_dim=self.embedding_dim,
                                      scoring_fct_norm=2,
                                      random_seed = self.random_seed)
-        elif kge_model == "transr":
-            self.kg_module =  TransR(triples_factory=self.triples_factory,
+        elif kge_model == "distmult":
+            self.kg_module = DistMult(triples_factory=self.triples_factory,
                                      embedding_dim=self.embedding_dim,
-                                     scoring_fct_norm=2,
+                                      random_seed = self.random_seed)
+        elif kge_model == "convkb":
+            self.kg_module = ConvKB(triples_factory=self.triples_factory,
+                                     embedding_dim=self.embedding_dim,
+                                    num_filters=10,
                                      random_seed = self.random_seed)
         elif kge_model == "ordere":
             self.kg_module =  OrderE(triples_factory=self.triples_factory,
@@ -47,24 +51,17 @@ class KGEModule(nn.Module):
                                      random_seed = self.random_seed)
 
 
-        elif kge_model == "transd":
-            self.kg_module =  TransD(triples_factory=self.triples_factory,
-                                     embedding_dim=self.embedding_dim,
-                                     random_seed = self.random_seed)
-
             
     def forward(self, data):
         h, r, t = data
         logits = self.kg_module.forward(h, r, t, mode=None)
-        if self.kge_model == "ordere":
-            logits = logits
+                    
         return logits
 
     def predict(self, data):
         h, r, t = data
         batch_hrt = th.stack([h,r,t], dim=1)
         logits = self.kg_module.score_hrt(batch_hrt)
-       # assert (logits < 0).all()
         return logits
 
     

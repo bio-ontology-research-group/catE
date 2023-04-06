@@ -6,26 +6,12 @@ import torch as th
 from tqdm import tqdm
 import os
 import pandas as pd
-from src.utils import FastTensorDataLoader, bot_name, top_name
+from src.utils import FastTensorDataLoader, bot_name, top_name, suffix
 
 
 prefix = {
-    "pizza": "pizza",
-    "dideo": "dideo",
-    "fobi": "fobi",
-    "go": "go",
     "go_comp": "go.train",
     "foodon_comp": "foodon-merged.train"
-}
-
-suffix = {
-    "onto2graph": "onto2graph_no_leakage.edgelist",
-    "owl2vec": "owl2vec_no_leakage.edgelist",
-    "rdf": "rdf.edgelist",
-    "cat": "cat.edgelist",
-    "cat1": "cat.s1.edgelist",
-    "cat2": "cat.s2.edgelist",
-    
 }
 
 
