@@ -59,7 +59,7 @@ def get_graph_metrics(filename, auc_threshold, h1_threshold, full_header = True)
         all_res = all_res.reindex(columns=swap_list)
         print(all_res)
     else:
-        best_h1 = analyze_result_metric(filename, "fh10", auc_threshold=auc_threshold, h1_threshold=h1_threshold, full_header=full_header)
+        best_h1 = analyze_result_metric(filename, "fh100", auc_threshold=auc_threshold, h1_threshold=h1_threshold, full_header=full_header)
         all_res = best_h1
         
         swap_list = ["embed_dim", "margin", "reg", "batch_size", "mrr", "fmrr", "mr", "h1", "h3", "h10", "h100", "auc", "fmr", "fh1", "fh3", "fh10", "fh100", "fauc"]
