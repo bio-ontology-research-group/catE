@@ -435,6 +435,9 @@ class CategoricalProjector():
     def project(self, ontology, identity = False, composition = False):
         """Project an ontology into a graph using categorical diagrams."""
 
+        all_classes = ontology.getClassesInSignature()
+        for cls in tqdm(all_classes):
+            self.graph.add_node(Node(owl_class = cls))
         all_axioms = ontology.getAxioms(True)
         
         for axiom in tqdm(all_axioms, total = len(all_axioms)):

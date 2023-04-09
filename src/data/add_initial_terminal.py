@@ -3,6 +3,7 @@ mowl.init_jvm("10g")
 
 import sys
 sys.path.append("../../")
+sys.path.append("../")
 
 import pandas as pd
 from mowl.owlapi.defaults import BOT, TOP
