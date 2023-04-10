@@ -14,8 +14,21 @@ def owl2rdf(owlfile):
 
     with open(owlfile.replace('.owl', '.rdf.edgelist'), 'w') as f:
         for s, p, o in tqdm.tqdm(g, total=len(g)):
+            #do not consider annotations
+            if p == rdflib.term.URIRef('http://www.w3.org/2002/07/owl#annotatedSource'):
+                continue
+            if p == rdflib.term.URIRef('http://www.w3.org/2002/07/owl#annotatedProperty'):
+                continue
+            if p == rdflib.term.URIRef('http://www.w3.org/2002/07/owl#annotatedTarget'):
+                continue
+            if p == rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#comment'):
+                continue
+            if p == rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#label'):
+                continue
+            
             if isinstance(s, rdflib.term.Literal):
                 continue
+            
             if isinstance(o, rdflib.term.Literal):
                 continue
                                                  
