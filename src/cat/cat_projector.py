@@ -24,7 +24,7 @@ from org.semanticweb.owlapi.model import OWLObjectIntersectionOf, OWLObjectSomeV
     OWLObjectExactCardinality, OWLDataHasValue, OWLDataSomeValuesFrom, OWLObjectMinCardinality, \
     OWLObjectHasSelf, AxiomType, OWLEntity, OWLObjectHasValue, OWLObjectOneOf, OWLClassExpression, \
     OWLDataExactCardinality, OWLDataMinCardinality, OWLDataMaxCardinality, OWLDataOneOf, EntityType, \
-    OWLObjectInverseOf
+    OWLObjectInverseOf, OWLObjectMaxCardinality, OWLDataAllValuesFrom
 
 from org.semanticweb.owlapi.model import ClassExpressionType as CT
 
@@ -675,7 +675,7 @@ class CategoricalProjector():
 
             return negation_complex_node, edges
                          
-        elif isinstance(expression, (OWLObjectExactCardinality, OWLObjectMinCardinality, OWLObjectHasSelf, OWLObjectHasValue, OWLObjectOneOf, OWLDataExactCardinality, OWLDataMinCardinality, OWLDataHasValue, OWLDataOneOf)):
+        elif isinstance(expression, (OWLObjectExactCardinality, OWLObjectMinCardinality, OWLObjectHasSelf, OWLObjectHasValue, OWLObjectOneOf, OWLDataExactCardinality, OWLDataMinCardinality, OWLDataHasValue, OWLDataOneOf, OWLDataSomeValuesFrom, OWLDataMaxCardinality, OWLObjectMaxCardinality, OWLDataAllValuesFrom)):
             return None, set()
         else:
             print("process expression and get complex node: Unknown super class type: {}".format(expression))

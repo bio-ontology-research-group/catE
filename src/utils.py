@@ -39,6 +39,7 @@ prefix = {
     "dideo": "dideo",
     "fobi": "fobi",
     "nro": "nro",
+    "kisao": "kisao",
     "go": "go",
     "go_comp": "go.train",
     "foodon_comp": "foodon-merged.train"
