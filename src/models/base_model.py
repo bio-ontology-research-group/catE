@@ -5,7 +5,7 @@ from pykeen.models import TransE, DistMult, ConvKB, ERModel
 from mowl.owlapi.defaults import TOP, BOT
 import logging
 import torch as th
-from src.utils import FastTensorDataLoader, subsumption_rel_name, bot_name, top_name, prefix, suffix
+from src.utils import FastTensorDataLoader, subsumption_rel_name, bot_name, top_name, prefix, suffix, graph_type
 from pykeen.triples import TriplesFactory
 
 class OrderE(TransE):
@@ -184,8 +184,13 @@ class Model():
         if self._graph_path is not None:
             return self._graph_path
 
-        graph_name = prefix[self.use_case]
-        graph_path = os.path.join(self.root, f"{graph_name}.{suffix[self.graph_type]}")
+        use_case = prefix[self.use_case]
+        graph_name = graph_type[self.graph_type]
+        if self.test_unsatifiability:
+            actual_suffix = "_initial_terminal_no_leakage.edgelist"
+        else:
+            actual_suffix = suffix[self.graph_type]
+        graph_path = os.path.join(self.root, f"{use_case}.{graph_name}{actual_suffix}")
         assert os.path.exists(graph_path), f"Graph file {graph_path} does not exist"
         self._graph_path = graph_path
         return self._graph_path

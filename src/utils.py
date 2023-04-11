@@ -12,8 +12,7 @@ subsumption_rel_name = {
     "cat": "http://arrow",
     "cat1": "http://arrow",
     "cat2": "http://arrow",
-    "catnit": "http://arrow"
-}
+    }
 
 bot_name = {
     "owl2vec": "http://www.w3.org/2002/07/owl#Nothing",
@@ -21,9 +20,7 @@ bot_name = {
     "rdf": "http://www.w3.org/2002/07/owl#Nothing",
     "cat": "owl:Nothing",
     "cat1": "owl:Nothing",
-    "cat2": "owl:Nothing",
-    "catnit": "owl:Nothing"
-    
+    "cat2": "owl:Nothing", 
 }
 
 top_name = {
@@ -33,8 +30,7 @@ top_name = {
     "cat": "owl:Thing",
     "cat1": "owl:Thing",
     "cat2": "owl:Thing",
-    "catnit": "owl:Thing"
-}
+    }
 
 
 
@@ -42,10 +38,23 @@ prefix = {
     "pizza": "pizza",
     "dideo": "dideo",
     "fobi": "fobi",
+    "nro": "nro",
     "go": "go",
     "go_comp": "go.train",
     "foodon_comp": "foodon-merged.train"
 }
+
+graph_type = {
+    "taxonomy": "taxonomy",
+    "onto2graph": "onto2graph",
+    "owl2vec": "owl2vec",
+    "rdf": "rdf",
+    "cat": "cat",
+    "cat1": "cat.s1",
+    "cat2": "cat.s2",
+    
+}
+
 suffix = {
     "taxonomy": "taxonomy_no_leakage.edgelist",
     "onto2graph": "onto2graph_no_leakage.edgelist",
@@ -54,6 +63,17 @@ suffix = {
     "cat": "cat_no_leakage.edgelist",
     "cat1": "cat.s1_no_leakage.edgelist",
     "cat2": "cat.s2_no_leakage.edgelist",
+    
+}
+
+suffix_unsat = {
+    "taxonomy": "taxonomy_initial_terminal_no_leakage.edgelist",
+    "onto2graph": "onto2graph_initial_terminal_no_leakage.edgelist",
+    "owl2vec": "owl2vec_initial_terminal_no_leakage.edgelist",
+    "rdf": "rdf_initial_terminal_no_leakage.edgelist",
+    "cat": "cat_initial_terminal_no_leakage.edgelist",
+    "cat1": "cat.s1_initial_terminal_no_leakage.edgelist",
+    "cat2": "cat.s2_initial_terminal_no_leakage.edgelist",
     
 }
 
