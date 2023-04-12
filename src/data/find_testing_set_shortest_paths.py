@@ -1,25 +1,35 @@
 import sys
+sys.path.append("../")
 import pandas as pd
 import networkx as nx
 from tqdm import tqdm
 import multiprocessing as mp
+from utils import bot_name
 
 edges_file = sys.argv[1]
 if not edges_file.endswith('.edgelist'):
     raise ValueError('Edges file must be in .edgelist format')
 test_set_file = sys.argv[2]
-if not test_set_file.endswith('.csv'):
-    raise ValueError('Test set file must be in .csv format')
+if not (test_set_file.endswith('.csv') or  test_set_file.endswith('.txt')):
+    raise ValueError('Test set file must be in .csv or .txt format')
+graph_type = sys.argv[3]
+if graph_type not in ["onto2graph", "owl2vec", "rdf", "cat", "cat1", "cat2"]:
+    raise ValueError("Graph type not recognized")
 
+bot = bot_name[graph_type]
 
 edges = pd.read_csv(edges_file, header=None, sep='\t')
 edges.columns = ["head", "rel", "tail"]
 edges = edges.drop_duplicates()
 
-test_set = pd.read_csv(test_set_file, header=None, sep=',')
-test_set.columns = ["head", "tail"]
-
-
+if test_set_file.endswith('.csv'):
+    test_set = pd.read_csv(test_set_file, header=None, sep=',')
+    test_set.columns = ["head", "tail"]
+    test_set["tail"] = test_set["tail"].apply(lambda x: bot if x == "owl:Nothing" else x)
+else:
+    test_set = pd.read_csv(test_set_file, header=None, sep='\t')
+    test_set.columns = ["head"]
+    test_set["tail"] = bot
 
 G = nx.DiGraph()
 heads = edges["head"].tolist()

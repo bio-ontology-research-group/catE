@@ -5,7 +5,7 @@ from pykeen.models import TransE, DistMult, ConvKB, ERModel
 from mowl.owlapi.defaults import TOP, BOT
 import logging
 import torch as th
-from src.utils import FastTensorDataLoader, subsumption_rel_name, bot_name, top_name, prefix, suffix, graph_type
+from src.utils import FastTensorDataLoader, subsumption_rel_name, bot_name, top_name, prefix, suffix, graph_type, suffix_unsat
 from pykeen.triples import TriplesFactory
 
 class OrderE(TransE):
@@ -187,7 +187,7 @@ class Model():
         use_case = prefix[self.use_case]
         graph_name = graph_type[self.graph_type]
         if self.test_unsatifiability:
-            actual_suffix = "_initial_terminal_no_leakage.edgelist"
+            actual_suffix = suffix_unsat[self.graph_type]
         else:
             actual_suffix = suffix[self.graph_type]
         graph_path = os.path.join(self.root, f"{use_case}.{graph_name}{actual_suffix}")

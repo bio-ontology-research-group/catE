@@ -57,24 +57,24 @@ graph_type = {
 }
 
 suffix = {
-    "taxonomy": "taxonomy_no_leakage.edgelist",
-    "onto2graph": "onto2graph_no_leakage.edgelist",
-    "owl2vec": "owl2vec_no_leakage.edgelist",
-    "rdf": "rdf_no_leakage.edgelist",
-    "cat": "cat_no_leakage.edgelist",
-    "cat1": "cat.s1_no_leakage.edgelist",
-    "cat2": "cat.s2_no_leakage.edgelist",
+    "taxonomy": "_no_leakage.edgelist",
+    "onto2graph": "_no_leakage.edgelist",
+    "owl2vec": "_no_leakage.edgelist",
+    "rdf": "_no_leakage.edgelist",
+    "cat": "_no_leakage.edgelist",
+    "cat1": "_no_leakage.edgelist",
+    "cat2": "_no_leakage.edgelist",
     
 }
 
 suffix_unsat = {
-    "taxonomy": "taxonomy_initial_terminal_no_leakage.edgelist",
-    "onto2graph": "onto2graph_initial_terminal_no_leakage.edgelist",
-    "owl2vec": "owl2vec_initial_terminal_no_leakage.edgelist",
-    "rdf": "rdf_initial_terminal_no_leakage.edgelist",
-    "cat": "cat_initial_terminal_no_leakage.edgelist",
-    "cat1": "cat.s1_initial_terminal_no_leakage.edgelist",
-    "cat2": "cat.s2_initial_terminal_no_leakage.edgelist",
+    "taxonomy": "_initial_terminal_no_leakage.edgelist",
+    "onto2graph": "_initial_terminal_no_leakage.edgelist",
+    "owl2vec": "_initial_terminal_no_leakage.edgelist",
+    "rdf": "_initial_terminal_no_leakage.edgelist",
+    "cat": "_cleaned_initial_terminal_no_leakage.edgelist",
+    "cat1": "_cleaned_initial_terminal_no_leakage.edgelist",
+    "cat2": "_cleaned_initial_terminal_no_leakage.edgelist",
     
 }
 

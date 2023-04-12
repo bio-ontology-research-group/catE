@@ -321,6 +321,7 @@ class Graph():
                 if out_filler.owl_class is None:
                     continue
                 if out_filler.is_owl_nothing():
+                    continue
                     edge = Edge(node, "saturation_lemma8", bot_node)
                     self.add_edge(edge)
                 else:
