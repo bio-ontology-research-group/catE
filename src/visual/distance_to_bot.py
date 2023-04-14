@@ -25,6 +25,10 @@ elif graph_type == "cat2":
 elif graph_type == "cat2c":
     graph_type = "cat2"
     graph_prefix = "cat.s2_cleaned"
+elif graph_type == "cat3":
+    graph_prefix = "cat.s3"
+elif graph_type == "cat5":
+    graph_prefix = "cat.s5"
 
 root = os.path.join(root, use_case, "data")
 
@@ -154,7 +158,8 @@ plt.legend(loc='upper right')
 plt.title("Path length distribution")
 plt.xlabel("Path length")
 plt.ylabel("Frequency")
-plt.show()
+plt.savefig(f"path_length_distribution_{use_case}_{graph_type}.png")
+
 
 
 

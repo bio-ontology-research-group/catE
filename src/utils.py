@@ -72,9 +72,9 @@ suffix_unsat = {
     "onto2graph": "_initial_terminal_no_leakage.edgelist",
     "owl2vec": "_initial_terminal_no_leakage.edgelist",
     "rdf": "_initial_terminal_no_leakage.edgelist",
-    "cat": "_cleaned_initial_terminal_no_leakage.edgelist",
-    "cat1": "_cleaned_initial_terminal_no_leakage.edgelist",
-    "cat2": "_cleaned_initial_terminal_no_leakage.edgelist",
+    "cat": "_initial_terminal_no_leakage.edgelist",
+    "cat1": "_initial_terminal_no_leakage.edgelist",
+    "cat2": "_initial_terminal_no_leakage.edgelist",
     
 }
 
