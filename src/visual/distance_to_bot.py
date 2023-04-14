@@ -97,9 +97,10 @@ def find_path(nodes):
     return with_path, without_path, node_not_found, avg_path_length, not_found_nodes, (first_node, len(path)), path
 
 path_lengths = dict()
+all_paths = dict()
 
-sat_paths = []
-unsat_paths = []
+sat_paths = dict()
+unsat_paths = dict()
 max_path_length = 0
 with mp.Pool(processes=16) as pool:
     max_ = len(all_classes)
@@ -116,11 +117,13 @@ with mp.Pool(processes=16) as pool:
                 max_path_length = path_length
             path = r[6]
             path_lengths[node] = path_length
+            all_paths[node] = path
             if node in unsat_classes:
-                unsat_paths.append(path)
+                unsat_paths[node] = path
             else:
-                sat_paths.append(path)
+                sat_paths[node] = path
             pbar.update()
+
 
 avg_path_length = avg_path_length / (with_path)
 
@@ -131,20 +134,23 @@ print("Without path: ", without_path)
 print("Node not found: ", node_not_found, len(not_found_nodes))
 
 print("Sat Paths:")
-for path in sat_paths:
-    print(path)
+for node in sorted(sat_paths.keys()):
+    print(node, sat_paths[node])
 print("Unsat Paths:")
-for path in unsat_paths:
-    print(path)
+for node in sorted(unsat_paths.keys()):
+    print(node, unsat_paths[node])
 
 # plot path length distribution using matplotlib
 unsat_class_dists = [path_lengths[unsat_class] for unsat_class in unsat_classes]
-unsat_class_dists = [max_path_length + 1 if dist == 0 else dist for dist in unsat_class_dists]
+unsat_non_zero = [x for x in unsat_class_dists if x > 0]
+unsat_zero = [max_path_length + 1 for x in unsat_class_dists if x == 0]
 
 sat_class_dists = [path_lengths[sat_class] for sat_class in all_classes if sat_class not in unsat_classes]
-sat_class_dists = [max_path_length + 1 if dist == 0 else dist for dist in sat_class_dists]
+sat_non_zero = [x for x in sat_class_dists if x > 0]
+sat_zero = [max_path_length + 1 for x in sat_class_dists if x == 0]
 
-plt.hist([sat_class_dists, unsat_class_dists], color=['blue', 'red'], label=['Satisfiable', 'Unsatisfiable'])
+plt.hist([unsat_non_zero, unsat_zero, sat_non_zero, sat_zero], color=['red', 'orange', 'blue', 'cyan'], label=['unsat_non_zero', 'unsat_zero', 'sat_non_zero', 'sat_zero'])
+plt.legend(loc='upper right')
 plt.title("Path length distribution")
 plt.xlabel("Path length")
 plt.ylabel("Frequency")

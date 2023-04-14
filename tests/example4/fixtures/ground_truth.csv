@@ -1,0 +1,26 @@
+http://mowl/A and http://mowl/C,owl:Nothing
+http://mowl/A and http://mowl/D,owl:Nothing
+http://mowl/B and http://mowl/C,owl:Nothing
+http://mowl/B and http://mowl/D,owl:Nothing
+http://mowl/C,not http://mowl/A
+http://mowl/D,not http://mowl/A
+http://mowl/C,not http://mowl/B
+http://mowl/D,not http://mowl/B
+http://mowl/A,http://mowl/A or http://mowl/B
+http://mowl/B,http://mowl/A or http://mowl/B
+http://mowl/D,http://mowl/C or http://mowl/D
+http://mowl/C,http://mowl/C or http://mowl/D
+http://mowl/F,http://mowl/E or http://mowl/F
+http://mowl/E,http://mowl/E or http://mowl/F
+http://mowl/A or http://mowl/B and http://mowl/C or http://mowl/D and http://mowl/E or http://mowl/F,http://mowl/A or http://mowl/B
+http://mowl/A or http://mowl/B and http://mowl/C or http://mowl/D and http://mowl/E or http://mowl/F,http://mowl/C or http://mowl/D
+http://mowl/A or http://mowl/B and http://mowl/C or http://mowl/D and http://mowl/E or http://mowl/F,http://mowl/E or http://mowl/F
+http://mowl/A and http://mowl/C and http://mowl/E,owl:Nothing
+http://mowl/B and http://mowl/C and http://mowl/E,owl:Nothing
+http://mowl/A and http://mowl/D and http://mowl/E,owl:Nothing
+http://mowl/B and http://mowl/D and http://mowl/E,owl:Nothing
+http://mowl/A and http://mowl/C and http://mowl/F,owl:Nothing
+http://mowl/B and http://mowl/C and http://mowl/F,owl:Nothing
+http://mowl/A and http://mowl/D and http://mowl/F,owl:Nothing
+http://mowl/B and http://mowl/D and http://mowl/F,owl:Nothing
+http://mowl/A or http://mowl/B and http://mowl/C or http://mowl/D and http://mowl/E or http://mowl/F,owl:Nothing

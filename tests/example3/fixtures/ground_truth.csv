@@ -1,0 +1,19 @@
+http://mowl/A,http://mowl/R some http://mowl/C
+http://mowl/A,http://mowl/R only http://mowl/D
+http://mowl/D,not http://mowl/C
+http://mowl/C and not http://mowl/C,owl:Nothing
+http://mowl/R some http://mowl/C,DOMAIN_http://mowl/R_under_http://mowl/R some http://mowl/C
+DOMAIN_http://mowl/R_under_http://mowl/R some http://mowl/C,http://mowl/R some http://mowl/C
+CODOMAIN_http://mowl/R_under_http://mowl/R some http://mowl/C,http://mowl/C
+http://mowl/R only http://mowl/D,NOT_DOMAIN_http://mowl/R_under_http://mowl/R some not http://mowl/D
+NOT_DOMAIN_http://mowl/R_under_http://mowl/R some not http://mowl/D,http://mowl/R only http://mowl/D
+http://mowl/R some not http://mowl/D,DOMAIN_http://mowl/R_under_http://mowl/R some not http://mowl/D
+DOMAIN_http://mowl/R_under_http://mowl/R some not http://mowl/D,http://mowl/R some not http://mowl/D
+CODOMAIN_http://mowl/R_under_http://mowl/R some not http://mowl/D,not http://mowl/D
+http://mowl/C,not http://mowl/D
+http://mowl/R some http://mowl/C,http://mowl/R some not http://mowl/D
+DOMAIN_http://mowl/R_under_http://mowl/R some http://mowl/C,DOMAIN_http://mowl/R_under_http://mowl/R some not http://mowl/D
+http://mowl/A,NOT_DOMAIN_http://mowl/R_under_http://mowl/R some not http://mowl/D
+http://mowl/A,not http://mowl/R some not http://mowl/D and http://mowl/R some not http://mowl/D
+not http://mowl/R some not http://mowl/D and http://mowl/R some not http://mowl/D,owl:Nothing
+http://mowl/A,owl:Nothing

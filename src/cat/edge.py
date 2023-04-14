@@ -1,18 +1,23 @@
 import numpy as np
 import torch as th
-from org.semanticweb.owlapi.model import OWLClassExpression, OWLObjectProperty, OWLClass, OWLObjectUnionOf, OWLObjectIntersectionOf, OWLObjectSomeValuesFrom, OWLObjectAllValuesFrom, ClassExpressionType
+from org.semanticweb.owlapi.model import OWLClassExpression, OWLObjectProperty, OWLClass, OWLObjectUnionOf, OWLObjectIntersectionOf, OWLObjectSomeValuesFrom, OWLObjectAllValuesFrom, ClassExpressionType, OWLObjectComplementOf
 
 
 
 from org.semanticweb.owlapi.manchestersyntax.renderer import ManchesterOWLSyntaxOWLObjectRendererImpl
 from jpype.types import JString
 from org.mowl import MOWLShortFormProvider
-
+from mowl.owlapi.defaults import BOT, TOP
+from mowl.owlapi import OWLAPIAdapter
 renderer = ManchesterOWLSyntaxOWLObjectRendererImpl()
 short_form_provider = MOWLShortFormProvider()
+
 renderer.setShortFormProvider(short_form_provider)
 
-
+adapter = OWLAPIAdapter()
+top_class = adapter.create_class(TOP)
+bot_class = adapter.create_class(BOT)
+import logging
 
 class Node():
     def __init__(self, owl_class = None, relation = None, domain=False, codomain=False, negated_domain=False):
@@ -25,6 +30,49 @@ class Node():
             bad_relation = True
 
 
+        #Simplify the node
+        ## Not Bot ---> Top and Not Top ---> Bot
+        if isinstance(owl_class, OWLObjectComplementOf):
+            owl_class_operand = owl_class.getOperand()
+            if owl_class_operand.isOWLNothing():
+                owl_class = top_class
+            elif owl_class_operand.isOWLThing():
+                owl_class = bot_class
+
+        
+                
+        elif isinstance(owl_class, OWLObjectUnionOf):
+            operands = owl_class.getOperandsAsList()
+            if len(operands) == 1:
+                raise ValueError(f"Union of one element is not allowed\n{owl_class}    \t{operands[0].toString()}")
+            for op in operands:
+                if op.isOWLNothing():
+                    logging.info(f"owl:Nothing existing in union. Removing it..")
+                    operands.remove(op)
+                elif op.isOWLThing():
+                    logging.info(f"owl:Thing existing in union. Simplifying to owl:Thing..")
+                    operands = None
+                    break
+            if operands is None:
+                owl_class = top_class
+            elif len(operands) == 1:
+                owl_class = operands[0]
+            else:
+                owl_class = adapter.create_object_union_of(*operands)
+
+        
+                
+        if isinstance(owl_class, OWLObjectIntersectionOf):
+            operands = owl_class.getOperandsAsList()
+            if len(operands) == 1:
+                raise ValueError(f"Intersection of one element is not allowed\n{owl_class}    \t{operands[0].toString()}")
+            for op in operands:
+                if op.isOWLThing():
+                    raise ValueError("Cannot create a node with OWLThing in an intersection")
+                if op.isOWLNothing():
+                    raise ValueError("Cannot create a node with OWLNothing in an intersection")
+
+        
         if bad_class or bad_relation:
             raise TypeError(f"Wrong either owl_class or relation. Required owl_clas of type OWLClassExpression. Got {type(owl_class)}. Required relation of type OWLObjectProperty. Got {type(relation)}") 
 
@@ -145,6 +193,10 @@ class Node():
         else:
             if self.owl_class.getClassExpressionType() == ClassExpressionType.OBJECT_COMPLEMENT_OF:
                 new_node = Node(owl_class=self.owl_class.getOperand(), relation=self.relation, domain=self.domain, codomain=self.codomain, negated_domain=self.negated_domain)
+            elif self.owl_class.isOWLThing():
+                new_node = Node(owl_class=bot_class, relation=self.relation, domain=self.domain, codomain=self.codomain, negated_domain=self.negated_domain)
+            elif self.owl_class.isOWLNothing():
+                new_node = Node(owl_class=top_class, relation=self.relation, domain=self.domain, codomain=self.codomain, negated_domain=self.negated_domain)
             else:
                 new_node = Node(owl_class=self.owl_class.getObjectComplementOf(), relation=self.relation, domain=self.domain, codomain=self.codomain, negated_domain=self.negated_domain)
         return new_node
@@ -236,6 +288,12 @@ class Node():
             is_bot = self.owl_class.isOWLNothing()
         return is_bot
 
+    def is_owl_thing(self):
+        is_top = False
+        if self.owl_class is not None:
+            is_top = self.owl_class.isOWLThing()
+        return is_top
+
     def get_operand(self):
         if not self.is_negated:
             raise ValueError("Node is not negated")
@@ -246,13 +304,16 @@ class Node():
         else:
             raise ValueError("Node is not negated")
         return new_node
+
+
+
     
 class Edge:
     """Class representing a graph edge.
     """
 
     def __init__(self, src, rel, dst, weight=1.):
-
+ 
         if not isinstance(src, Node):
             raise TypeError("Parameter src must be a Node")
         if not isinstance(rel, str):
@@ -261,6 +322,9 @@ class Edge:
             raise TypeError("Parameter dst must be a Node")
         if not isinstance(weight, float):
             raise TypeError("Optional parameter weight must be a float")
+
+        src_str = str(src)
+        dst_str = str(dst)
 
         self._src = src
         self._rel = rel

@@ -11,8 +11,8 @@ import click as ck
 import sys
 sys.path.append('../..')
 
-from edge import Edge, Node
-from utils import IGNORED_AXIOM_TYPES, pairs
+from .edge import Edge, Node
+from .utils import IGNORED_AXIOM_TYPES, pairs
 
 from mowl.owlapi import OWLAPIAdapter, OWLClass
 from mowl.owlapi.defaults import BOT, TOP
@@ -82,10 +82,17 @@ class Graph():
         
         if not isinstance(node, Node):
             raise TypeError(f"Node must be of type Node. Got {type(node)}")
+
+        if node.is_owl_thing():
+            return
+        if node.is_owl_nothing():
+            return
+        
         if bot_node not in self.node_to_id:
             self.node_to_id[bot_node] = len(self.node_to_id)
             self.id_to_node[self.node_to_id[bot_node]] = bot_node
             self.out_edges[bot_node] = set()
+            self.out_edges[bot_node].add(top_node)
             self.in_edges[bot_node] = set()
 
         if top_node not in self.node_to_id:
@@ -93,6 +100,7 @@ class Graph():
             self.id_to_node[self.node_to_id[top_node]] = top_node
             self.out_edges[top_node] = set()
             self.in_edges[top_node] = set()
+            self.in_edges[top_node].add(bot_node)
 
             
         if not node in self.node_to_id:
@@ -165,28 +173,51 @@ class Graph():
 
     def _lemma_6(self):
         # First equation, nothing to do
-        # Second equation and right side of third equation and right side of fourth equation
+        # Second equation and left side of third equation and left side of fourth equation
         negated_nodes = set()
         for node in self.nodes:
-            if node.is_negated():
-                #print("Negated node: {}\t{}".format(node, node.owl_class))
+            if node.is_negated() and not node.negated_domain:
                 negated_nodes.add(node)
             
         for neg_node in negated_nodes:
             in_edges = list(self.in_edges[neg_node])
             for in_node in in_edges:
-                node = neg_node.get_operand()
-                #node = Node(owl_class = node)
-                neg_in_node = in_node.negate()
-                #neg_in_node = adapter.create_complement_of(in_node.owl_class)
-                #neg_in_node = Node(owl_class = neg_in_node)
-                op_edge = Edge(node, "saturation_lemma6", neg_in_node)
+                if in_node.is_owl_nothing() or in_node.is_owl_thing():
+                    continue
+                if in_node.domain:
+                    continue
+                if node == in_node:
+                    continue
                 
-                intersection = adapter.create_object_intersection_of(node.owl_class, in_node.owl_class)
-                intersection = Node(owl_class = intersection)
+                node = neg_node.get_operand()
+                neg_in_node = in_node.negate()
+                op_edge = Edge(node, "saturation_lemma6", neg_in_node)
+
+                intersection_owl = adapter.create_object_intersection_of(node.owl_class, in_node.owl_class)
+                if len(intersection_owl.getNNF().getOperandsAsList()) == 1:
+                    continue
+
+                intersection = Node(owl_class = intersection_owl)
+                
+                assert node.domain == intersection.domain, f"Domain of {node} is {node.domain} and domain of {intersection} is {intersection.domain}"
+                assert node.codomain == intersection.codomain, f"Codomain of {node} is {node.codomain} and codomain of {intersection} is {intersection.codomain}"
+                assert node.negated_domain == intersection.negated_domain, f"Negated domain of {node} is {node.negated_domain} and negated domain of {intersection} is {intersection.negated_domain}"
                 edge_int = Edge(intersection, "saturation_lemma6", bot_node)
 
-                union = adapter.create_object_union_of(node.owl_class, in_node.owl_class)
+            out_edges = list(self.out_edges[neg_node])
+            for out_node in out_edges:
+                if out_node.is_owl_thing() or out_node.is_owl_nothing():
+                    continue
+                if out_node.domain:
+                    continue
+                if node == out_node:
+                    continue
+                node = neg_node.get_operand()
+
+                union = adapter.create_object_union_of(node.owl_class, out_node.owl_class)
+                if len(union.getNNF().getOperandsAsList()) == 1:
+                    continue
+                
                 union = Node(owl_class = union)
                 edge_un = Edge(top_node, "saturation_lemma6", union)
 
@@ -209,6 +240,8 @@ class Graph():
             intersection_pairs = pairs(operands)
             
             for node1, node2 in intersection_pairs:
+                node1 = [n for n in node1 if not n.isOWLThing()] if len(node1) > 1 else node1
+                node2 = [n for n in node2 if not n.isOWLThing()] if len(node2) > 1 else node2
                 if len(node1) > 1:
                     node1 = adapter.create_object_intersection_of(*node1)
                 else:
@@ -226,15 +259,19 @@ class Graph():
         union_nodes = set()
         for node in self.nodes:
             if node.is_union():
+                
                 union_nodes.add(node)
 
         for un_node in union_nodes:
+            
             if not top_node in self.in_edges[un_node]:
                 continue
 
-            operands = list(un_node.owl_class.getOperandsAsList())
+            operands = un_node.owl_class.getOperandsAsList()
             union_pairs = pairs(operands)
             for node1, node2 in union_pairs:
+                node1 = [n for n in node1 if not n.isOWLNothing()] if len(node1) > 1 else node1
+                node2 = [n for n in node2 if not n.isOWLNothing()] if len(node2) > 1 else node2
                 if len(node1) > 1:
                     node1 = adapter.create_object_union_of(*node1)
                 else:
@@ -253,6 +290,40 @@ class Graph():
                         
 
 
+    def _definition_6(self):
+        # Def 6. Although it is not defined explicitely in the paper, this definition will look for classes that are subclass of a disjointness.
+        for node in self.nodes:
+            if node.in_relation_category():
+                continue
+            if node.is_owl_thing() or node.is_owl_nothing():
+                continue
+            
+            node_to_neg = dict()
+            for out_node in self.out_edges[node]:
+                if out_node.domain or out_node.codomain:
+                    continue
+                if out_node.is_owl_thing() or out_node.is_owl_nothing():
+                    continue
+
+                
+                if not out_node in node_to_neg and not out_node.negate() in node_to_neg:
+                    node_to_neg[out_node] = None
+                elif out_node in node_to_neg:
+                    continue
+                elif out_node.negate() in node_to_neg:
+                    node_to_neg[out_node.negate()] = out_node
+                    
+            for node1, node2 in node_to_neg.items():
+                if node2 is None:
+                    continue
+                else:
+                    intersection = adapter.create_object_intersection_of(node1.owl_class, node2.owl_class)
+                    intersection = Node(owl_class = intersection)
+                    edge = Edge(intersection, "saturation_lemma6", bot_node)
+                    self.add_edge(edge)
+                    edge2 = Edge(node, "saturation_lemma6", intersection)
+                    self.add_edge(edge2)
+                                        
                             
     def _definition_7(self):
         #Last equation, other equations are covered in lemma 8
@@ -347,7 +418,7 @@ class Graph():
             src, dst = edge
                             
             if src.in_object_category() and dst.in_object_category():
-                if False and src == top_node or src == bot_node or dst == top_node or dst == bot_node:
+                if src == bot_node or dst == top_node:
                     continue
                 G.add_edge(self.node_to_id[src], self.node_to_id[dst])
         logging.debug("Done converting to networkx")
@@ -366,6 +437,7 @@ class Graph():
 
                 
     def saturate(self):
+        self._definition_6()
         self._lemma_6()
         self._definition_7()
         self._lemma_8()

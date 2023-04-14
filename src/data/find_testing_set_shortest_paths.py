@@ -49,6 +49,7 @@ def find_path(nodes):
     try:
         path = nx.shortest_path(G, source=first_node, target=second_node)
         if len(path) > 1:
+            print(path)
             with_path += 1
             avg_path_length += len(path)
         else:
