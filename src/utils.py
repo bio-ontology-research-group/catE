@@ -42,7 +42,8 @@ prefix = {
     "kisao": "kisao",
     "go": "go",
     "go_comp": "go.train",
-    "foodon_comp": "foodon-merged.train"
+    "foodon_comp": "foodon-merged.train",
+    "go_ded": "go"
 }
 
 graph_type = {
