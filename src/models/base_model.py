@@ -89,6 +89,7 @@ class Model():
                  test_deductive_inference,
                  test_completion,
                  test_named_classes,
+                 reduced_subsumption,
                  test_existential
                  ):
 
@@ -120,6 +121,7 @@ class Model():
         self.test_deductive_inference = test_deductive_inference
         self.test_completion = test_completion
         self.test_named_classes = test_named_classes
+        self.reduced_subsumption = reduced_subsumption
         self.test_existential = test_existential
 
         self._triples_factory = None
@@ -185,6 +187,8 @@ class Model():
             return self._graph_path
 
         use_case = prefix[self.use_case]
+        if self.reduced_subsumption:
+            use_case += "_90_100"
         graph_name = graph_type[self.graph_type]
         if self.test_unsatifiability:
             actual_suffix = suffix_unsat[self.graph_type]
