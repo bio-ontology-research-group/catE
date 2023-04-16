@@ -7,13 +7,7 @@ from tqdm import tqdm
 from mowl.owlapi.defaults import BOT
 import os
 import pandas as pd
-from src.utils import FastTensorDataLoader
-
-subsumption_rel_name = {
-    "cat": "http://arrow",
-    "cat1": "http://arrow",
-    "cat2": "http://arrow"
-}
+from src.utils import FastTensorDataLoader, subsumption_rel_name, prefix, graph_type, suffix
 
 class CatDeductive(CatModel):
 
@@ -30,10 +24,13 @@ class CatDeductive(CatModel):
         if self._graph_path is not None:
             return self._graph_path
 
+        pref = prefix[self.use_case]
         if self.reduced_subsumption:
-            use_case += "_90_100"
-        
-        graph_path = os.path.join(self.root, f"go.cat_no_initial_and_terminal.edgelist")
+            pref += "_90_100"
+
+        graph_name = graph_type[self.graph_type]
+        suf = suffix[self.graph_type]
+        graph_path = os.path.join(self.root, f"{pref}.{graph_name}{suf}")
         assert os.path.exists(graph_path), f"Graph file {graph_path} does not exist"
         self._graph_path = graph_path
         print("Graph path", graph_path)
@@ -42,11 +39,11 @@ class CatDeductive(CatModel):
     @property
     def deductive_closure_path(self):
         if self.test_named_classes:
-            filename = f"{self.use_case}_subsumption_closure.csv"
+            filename = f"{prefix[self.use_case]}_subsumption_closure.csv"
             path = os.path.join(self.root, filename)
             return path
         elif self.test_existential:
-            filename = f"{self.use_case}_existential_subsumption_closure.csv"
+            filename = f"{prefix[self.use_case]}_existential_subsumption_closure.csv"
             path = os.path.join(self.root, filename)
             return path
     
