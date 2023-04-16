@@ -30,6 +30,8 @@ class CatDeductive(CatModel):
         if self._graph_path is not None:
             return self._graph_path
 
+        if self.reduced_subsumption:
+            use_case += "_90_100"
         
         graph_path = os.path.join(self.root, f"go.cat_no_initial_and_terminal.edgelist")
         assert os.path.exists(graph_path), f"Graph file {graph_path} does not exist"

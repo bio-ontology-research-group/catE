@@ -34,6 +34,7 @@ import torch as th
 @ck.option('--test-deductive-inference', '-td', is_flag=True)
 @ck.option('--test-ontology-completion', '-tc', is_flag=True)
 @ck.option('--test-named-classes', '-tn', is_flag=True)
+@ck.option('--reduced-subsumption', '-rs', is_flag=True)
 @ck.option('--test-existentials', '-te', is_flag=True)
 @ck.option('--test-both-quantifiers', '-tbq', is_flag=True)
 @ck.option('--validation-file', '-vf', type=ck.Path(exists=True), default=None)
@@ -45,7 +46,7 @@ import torch as th
 @ck.option('--result-filename', '-rf', required=True)
 def main(use_case, graph_type, kge_model, root, emb_dim, margin, weight_decay, batch_size, lr, num_negs,
          test_batch_size, epochs, test_unsatisfiability, test_deductive_inference, test_ontology_completion,
-         test_named_classes, test_existentials, test_both_quantifiers, validation_file, test_file, device,
+         test_named_classes, reduced_subsumption, test_existentials, test_both_quantifiers, validation_file, test_file, device,
          seed, only_train, only_test, result_filename):
 
     if not result_filename.endswith('.csv'):
@@ -121,6 +122,7 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin, weight_decay, b
                   test_deductive_inference,
                   test_ontology_completion,
                   test_named_classes,
+                  reduced_subsumption,
                   test_existentials,
                   )
 
