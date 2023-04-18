@@ -187,8 +187,6 @@ class Model():
             return self._graph_path
 
         use_case = prefix[self.use_case]
-        if self.reduced_subsumption:
-            use_case += "_90_100"
         graph_name = graph_type[self.graph_type]
         if self.test_unsatifiability:
             actual_suffix = suffix_unsat[self.graph_type]
