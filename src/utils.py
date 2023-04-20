@@ -80,6 +80,18 @@ suffix_unsat = {
 }
 
 
+suffix_completion = {
+    "taxonomy": "_no_leakage.edgelist",
+    "onto2graph": "_no_leakage.edgelist",
+    "owl2vec": "_no_leakage.edgelist",
+    "rdf": "_no_leakage_no_trivial.edgelist",
+    "cat": "_no_leakage_no_trivial.edgelist",
+    "cat1": "_no_leakage_no_trivial.edgelist",
+    "cat2": "_no_leakage_no_trivial.edgelist",
+    
+}
+
+
 
     
 

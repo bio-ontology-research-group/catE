@@ -7,7 +7,7 @@ from tqdm import tqdm
 from mowl.owlapi.defaults import BOT
 import os
 import pandas as pd
-from src.utils import FastTensorDataLoader, suffix, graph_type
+from src.utils import FastTensorDataLoader, suffix_completion, graph_type
 
 subsumption_rel_name = {
     "cat": "http://arrow",
@@ -40,7 +40,7 @@ class CatCompletion(CatModel):
             return self._graph_path
 
         
-        graph_path = os.path.join(self.root, f"{prefix[self.use_case]}.{graph_type[self.graph_type]}{suffix[self.graph_type]}")
+        graph_path = os.path.join(self.root, f"{prefix[self.use_case]}.{graph_type[self.graph_type]}{suffix_completion[self.graph_type]}")
         assert os.path.exists(graph_path), f"Graph file {graph_path} does not exist"
         self._graph_path = graph_path
         print("Graph path", graph_path)

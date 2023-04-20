@@ -5,7 +5,7 @@ input_file = sys.argv[1]
 if not input_file.endswith('.edgelist'):
     raise ValueError('Input file must be an edgelist')
 
-output_file = input_file.replace('.edgelist', '_no_initial_and_terminal.edgelist')
+output_file = input_file.replace('.edgelist', '_no_trivial.edgelist')
 
 df = pd.read_csv(input_file, sep='\t', header=None, names=['head', "rel", "tail"])
 
