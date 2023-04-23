@@ -10,6 +10,7 @@ import os
 from src.models.baseline import Baseline
 from src.models.baseline_unsat import BaselineUnsat
 from src.models.baseline_completion import BaselineCompletion
+from src.models.cat_ppi import CatPPI
 from src.models.cat_unsat import CatUnsat
 from src.models.cat_deductive import CatDeductive
 from src.models.cat_completion import CatCompletion
@@ -18,7 +19,7 @@ import gc
 import torch as th
 
 @ck.command()
-@ck.option('--use-case', '-case', required=True, type=ck.Choice(["pizza", "nro", "kisao", "dideo", "fobi", "go_comp", "foodon_comp", "go_ded"]))
+@ck.option('--use-case', '-case', required=True, type=ck.Choice(["pizza", "nro", "kisao", "dideo", "fobi", "go_comp", "foodon_comp", "go_ded", "ppi"]))
 @ck.option('--graph-type', '-g', required=True, type=ck.Choice(['rdf', "owl2vec", 'onto2graph', 'cat', 'cat1', 'cat2', 'catnit']))
 @ck.option('--kge-model', '-kge', required=True, type=ck.Choice(['transe', 'distmult', 'convkb', 'ordere']))
 @ck.option('--root', '-r', required=True, type=ck.Path(exists=True))
@@ -37,6 +38,7 @@ import torch as th
 @ck.option('--reduced-subsumption', '-rs', is_flag=True)
 @ck.option('--test-existentials', '-te', is_flag=True)
 @ck.option('--test-both-quantifiers', '-tbq', is_flag=True)
+@ck.option('--test-ppi', '-tppi', is_flag=True)
 @ck.option('--validation-file', '-vf', type=ck.Path(exists=True), default=None)
 @ck.option('--test-file', '-tf', required=True, type=ck.Path(exists=True))
 @ck.option('--device', '-d', required=True, type=ck.Choice(['cpu', 'cuda']))
@@ -46,7 +48,7 @@ import torch as th
 @ck.option('--result-filename', '-rf', required=True)
 def main(use_case, graph_type, kge_model, root, emb_dim, margin, weight_decay, batch_size, lr, num_negs,
          test_batch_size, epochs, test_unsatisfiability, test_deductive_inference, test_ontology_completion,
-         test_named_classes, reduced_subsumption, test_existentials, test_both_quantifiers, validation_file, test_file, device,
+         test_named_classes, reduced_subsumption, test_existentials, test_both_quantifiers, test_ppi, validation_file, test_file, device,
          seed, only_train, only_test, result_filename):
 
     if not result_filename.endswith('.csv'):
@@ -76,6 +78,13 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin, weight_decay, b
     print("\ttest_batch_size: ", test_batch_size)
     print("\tepochs: ", epochs)
     print("\ttest_unsatisfiability: ", test_unsatisfiability)
+    print("\ttest_deductive_inference: ", test_deductive_inference)
+    print("\ttest_ontology_completion: ", test_ontology_completion)
+    print("\ttest_named_classes: ", test_named_classes)
+    print("\treduced_subsumption: ", reduced_subsumption)
+    print("\ttest_existentials: ", test_existentials)
+    print("\ttest_both_quantifiers: ", test_both_quantifiers)
+    print("\ttest_ppi: ", test_ppi)
     print("\tvalidation_file: ", validation_file)
     print("\ttest_file: ", test_file)
     print("\tdevice: ", device)
@@ -98,6 +107,8 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin, weight_decay, b
             Model = CatCompletion
         else:
             Model = BaselineCompletion
+    elif test_ppi:
+        Model = CatPPI
     else:
         Model = Baseline
         
@@ -124,6 +135,7 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin, weight_decay, b
                   test_named_classes,
                   reduced_subsumption,
                   test_existentials,
+                  test_ppi
                   )
 
     if not only_test:
@@ -145,6 +157,11 @@ def main(use_case, graph_type, kge_model, root, emb_dim, margin, weight_decay, b
             print("Start testing ontology completion")
             raw_metrics, filtered_metrics = model.test()
             save_results(params, raw_metrics, filtered_metrics, result_filename)
+        elif test_ppi:
+            print("Start testing PPI")
+            raw_metrics, filtered_metrics = model.test()
+            save_results(params, raw_metrics, filtered_metrics, result_filename)
+            
             
 def save_results(params, raw_metrics, filtered_metrics, result_dir):
     emb_dim, margin, weight_decay, batch_size, lr, num_negs = params

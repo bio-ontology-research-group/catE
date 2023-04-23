@@ -90,7 +90,8 @@ class Model():
                  test_completion,
                  test_named_classes,
                  reduced_subsumption,
-                 test_existential
+                 test_existential,
+                 test_ppi
                  ):
 
 
@@ -123,6 +124,7 @@ class Model():
         self.test_named_classes = test_named_classes
         self.reduced_subsumption = reduced_subsumption
         self.test_existential = test_existential
+        self.test_ppi = test_ppi
 
         self._triples_factory = None
         self._graph = None

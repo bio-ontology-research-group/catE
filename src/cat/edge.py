@@ -68,10 +68,22 @@ class Node():
                 raise ValueError(f"Intersection of one element is not allowed\n{owl_class}    \t{operands[0].toString()}")
             for op in operands:
                 if op.isOWLThing():
-                    raise ValueError("Cannot create a node with OWLThing in an intersection")
+                    logging.info(f"owl:Thing existing in intersection. Removing it..")
+                    operands.remove(op)
                 if op.isOWLNothing():
-                    raise ValueError("Cannot create a node with OWLNothing in an intersection")
+                    logging.info(f"owl:Nothing existing in intersection. Simplifying to owl:Nothing..")
+                    operands = None
+                    break
 
+            if operands is None:
+                owl_class = bot_class
+
+            elif len(operands) == 1:
+                owl_class = operands[0]
+            else:
+                owl_class = adapter.create_object_intersection_of(*operands)
+
+                
         
         if bad_class or bad_relation:
             raise TypeError(f"Wrong either owl_class or relation. Required owl_clas of type OWLClassExpression. Got {type(owl_class)}. Required relation of type OWLObjectProperty. Got {type(relation)}") 
