@@ -26,6 +26,7 @@ class CatPPI(CatModel):
             return self._graph_path
 
         pref = "yeast-classes_extended"
+        pref = "yeast-classes"
         graph_name = graph_type[self.graph_type]
         suf = suffix_ppi[self.graph_type]
         graph_path = os.path.join(self.root, f"{pref}.{graph_name}{suf}")
@@ -68,7 +69,7 @@ class CatPPI(CatModel):
     def get_existential_node(self, node):
         rel = "http://interacts"
         return f"{rel} some {node}"
-        return f"DOMAIN_{rel}_under_{rel} some {node}"
+        #return f"DOMAIN_{rel}_under_{rel} some {node}"
     
     def create_subsumption_dataloader(self, tuples_path, batch_size):
         tuples = pd.read_csv(tuples_path, sep="\t", header=None)
@@ -78,6 +79,10 @@ class CatPPI(CatModel):
 
         heads = ["http://"+ h for h in tuples["head"].values]
         tails = ["http://"+ t for t in tuples["tail"].values]
+
+        pairs = [(h, t) for h, t in zip(heads, tails) if h in self.ontology_classes and t in self.ontology_classes]
+
+        heads, tails = zip(*pairs)
 
         heads = [self.node_to_id[h] for h in heads]
         tails = [self.node_to_id[self.get_existential_node(t)] for t in tails]
