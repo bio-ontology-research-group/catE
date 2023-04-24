@@ -26,7 +26,7 @@ class CatPPI(CatModel):
             return self._graph_path
 
         pref = "yeast-classes_extended"
-        pref = "yeast-classes"
+        #pref = "yeast-classes"
         graph_name = graph_type[self.graph_type]
         suf = suffix_ppi[self.graph_type]
         graph_path = os.path.join(self.root, f"{pref}.{graph_name}{suf}")
