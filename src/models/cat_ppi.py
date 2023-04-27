@@ -14,6 +14,7 @@ class CatPPI(CatModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self._protein_names = None
         self._protein_idxs = None
         self._existential_protein_idxs = None
 
@@ -25,7 +26,7 @@ class CatPPI(CatModel):
         if self._graph_path is not None:
             return self._graph_path
 
-        pref = "yeast-classes_extended"
+        pref = "yeast_extended"
         #pref = "yeast-classes"
         graph_name = graph_type[self.graph_type]
         suf = suffix_ppi[self.graph_type]
@@ -36,12 +37,28 @@ class CatPPI(CatModel):
         return self._graph_path
 
     @property
+    def train_proteins_path(self):
+        return os.path.join(self.root, "train_proteins.tsv")
+
+    @property
+    def protein_names(self):
+        if self._protein_names is not None:
+            return self._protein_names
+        
+        proteins = pd.read_csv(self.train_proteins_path, sep="\t", header=None)
+        proteins.columns = ["protein"]
+        proteins["protein"] = "http://" + proteins["protein"]
+        proteins = proteins["protein"].values
+        self._protein_names = proteins
+        return self._protein_names
+        
+    @property
     def protein_idxs(self):
         if not self._protein_idxs is None:
             return self._protein_idxs
-            
-        protein_names = [p for p in self.ontology_classes if p.startswith("http://4932")]
-        protein_idxs = th.tensor([self.node_to_id[p] for p in protein_names], dtype=th.long, device=self.device)
+
+        
+        protein_idxs = th.tensor([self.node_to_id[p] for p in self.protein_names], dtype=th.long, device=self.device)
 
         self._protein_idxs = protein_idxs
         return self._protein_idxs
@@ -50,10 +67,9 @@ class CatPPI(CatModel):
     def existential_protein_idxs(self):
         if not self._existential_protein_idxs is None:
             return self._existential_protein_idxs
-        
-        protein_names = [p for p in self.ontology_classes if p.startswith("http://4932")]
-        existential_protein_names = [self.get_existential_node(p) for p in protein_names]
-        ex_protein_idxs = th.tensor([self.node_to_id[p] for p in existential_protein_names], dtype=th.long, device=self.device)
+
+        existentials = [self.get_existential_node(p) for p in self.protein_names]
+        ex_protein_idxs = th.tensor([self.node_to_id[p] for p in existentials], dtype=th.long, device=self.device)
 
         self._existential_protein_idxs = ex_protein_idxs
         return self._existential_protein_idxs
@@ -80,7 +96,7 @@ class CatPPI(CatModel):
         heads = ["http://"+ h for h in tuples["head"].values]
         tails = ["http://"+ t for t in tuples["tail"].values]
 
-        pairs = [(h, t) for h, t in zip(heads, tails) if h in self.ontology_classes and t in self.ontology_classes]
+        pairs = [(h, t) for h, t in zip(heads, tails) if h in self.protein_names and t in self.protein_names]
 
         heads, tails = zip(*pairs)
 
@@ -282,7 +298,7 @@ class CatPPI(CatModel):
         return logits
         
     def test(self):
-        logging.info("Testing unsatisfiability...")
+        logging.info("Testing ppi...")
         filtering_labels = self.get_filtering_labels()
         raw_metrics, filtered_metrics = self.compute_ranking_metrics(filtering_labels)
         return raw_metrics, filtered_metrics
