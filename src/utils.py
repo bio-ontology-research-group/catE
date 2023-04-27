@@ -93,7 +93,7 @@ suffix_completion = {
 
 
 suffix_ppi = {
-    "cat": ".edgelist",
+    "cat": "_no_trivial.edgelist",
     "cat1": ".edgelist",
     "cat2": ".edgelist",
     
