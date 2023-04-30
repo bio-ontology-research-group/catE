@@ -5,7 +5,7 @@ import numpy as np
 import torch as th
 from tqdm import tqdm
 from mowl.owlapi.defaults import BOT
-
+from src.utils import suffix_unsat
 
 subsumption_rel_name = {
     "cat": "http://arrow",
@@ -17,6 +17,7 @@ class CatUnsat(CatModel):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
 
 
     def get_filtering_labels(self):
@@ -150,9 +151,14 @@ class CatUnsat(CatModel):
 
 
     def normal_forward(self, head_idxs, rel_idxs, tail_idxs):
-        logits = self.model.predict((head_idxs, rel_idxs, tail_idxs))
-        logits = logits.reshape(-1, len(self.ontology_classes_idxs))
-        return logits
+        if self.kge_model == "ordere":
+            logits = self.model.distance((head_idxs, rel_idxs, tail_idxs))
+            logits = logits.reshape(-1, len(self.ontology_classes_idxs))
+            return logits
+        else:
+            logits = self.model.predict((head_idxs, rel_idxs, tail_idxs))
+            logits = logits.reshape(-1, len(self.ontology_classes_idxs))
+            return logits
 
     
     def predict(self, heads, rels, tails):

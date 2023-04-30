@@ -20,6 +20,11 @@ class OrderE(TransE):
     def score_hrt(self, hrt_batch, mode = None):
         h, r, t = self._get_representations(h=hrt_batch[:, 0], r = hrt_batch[:, 1], t=hrt_batch[:, 2], mode=mode)
         return -th.linalg.norm(th.relu(t-h), dim=1)
+
+    def distance(self, hrt_batch, mode = None):
+        h, r, t = self._get_representations(h=hrt_batch[:, 0], r = hrt_batch[:, 1], t=hrt_batch[:, 2], mode=mode)
+        distance = th.linalg.norm(t-h, dim=1)
+        return  -distance
     
 class KGEModule(nn.Module):
     def __init__(self, kge_model, triples_factory, embedding_dim, random_seed):
@@ -64,6 +69,11 @@ class KGEModule(nn.Module):
         logits = self.kg_module.score_hrt(batch_hrt)
         return logits
 
+    def distance(self, data):
+        h, r, t = data
+        batch_hrt = th.stack([h,r,t], dim=1)
+        dist = self.kg_module.distance(batch_hrt)
+        return dist
     
 
 class Model():
