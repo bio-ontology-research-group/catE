@@ -1,4 +1,4 @@
-name: catproj
+name: cate
 channels:
   - conda-forge
   - anaconda
@@ -12,8 +12,4 @@ dependencies:
   - rdflib==6.2.0
   - tqdm
   - pip:
-      - mowl-borg==0.1.1
-      - pykeen
-      - pystow==0.4.3 # PyKEEN requirement
-      - wget
-      - pytest
+    - -r requirements.txt
