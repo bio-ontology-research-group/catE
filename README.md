@@ -58,19 +58,19 @@ in the biomedical domain.
     │   └── models
     ├── foodon_completion
     │   ├── data
-	│   └── models
+    │   └── models
     ├── go
     │   ├── data
     │   └── models
     ├── go_completion
     │   ├── data
-	│   └── models
+    │   └── models
     ├── go_deductive
     │   ├── data
-	│   └── models
+    │   └── models
     ├── nro
     │   ├── data
-	│   └── models
+    │   └── models
     └── ppi
         ├── data
         └── models
