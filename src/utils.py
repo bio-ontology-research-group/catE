@@ -69,10 +69,9 @@ suffix = {
 }
 
 suffix_unsat = {
-    "taxonomy": "_initial_terminal_no_leakage.edgelist",
-    "onto2graph": "_initial_terminal_no_leakage.edgelist",
-    "owl2vec": "_initial_terminal_no_leakage.edgelist",
-    "rdf": "_initial_terminal_no_leakage.edgelist",
+    "onto2graph": "_initial_terminal.edgelist",
+    "owl2vec": "_initial_terminal.edgelist",
+    "rdf": "_initial_terminal.edgelist",
     "cat": "_initial_terminal_no_leakage.edgelist",
     "cat1": "_initial_terminal_no_leakage.edgelist",
     "cat2": "_initial_terminal_no_leakage.edgelist",

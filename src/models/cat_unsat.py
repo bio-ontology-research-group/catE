@@ -7,6 +7,8 @@ from tqdm import tqdm
 from mowl.owlapi.defaults import BOT
 from src.utils import suffix_unsat
 
+DESCENDING = True
+
 subsumption_rel_name = {
     "cat": "http://arrow",
     "cat1": "http://arrow",
@@ -49,9 +51,9 @@ class CatUnsat(CatModel):
                     assert rel_name == subsumption_relation, f"{rel_name} != {subsumption_relation}"
                                                                 
                     graph_rel_name = self.id_to_relation[rel.item()]
-                    filtering_labels[head_ont_id] = 10000
+                    filtering_labels[head_ont_id] = 10000 if DESCENDING else -10000
 
-        filtering_labels[self.bot_idx] = 10000
+        filtering_labels[self.bot_idx] = 10000 if DESCENDING else -10000
         return filtering_labels
 
 
@@ -65,6 +67,7 @@ class CatUnsat(CatModel):
         hits_at_1, fhits_at_1 = 0, 0
         hits_at_3, fhits_at_3 = 0, 0
         hits_at_10, fhits_at_10 = 0, 0
+        hits_at_50, fhits_at_50 = 0, 0
         hits_at_100, fhits_at_100 = 0, 0
         ranks, filtered_ranks = dict(), dict()
 
@@ -90,8 +93,8 @@ class CatUnsat(CatModel):
                     preds = th.from_numpy(preds).to(self.device)
                     filtered_preds = th.from_numpy(filtered_preds).to(self.device)
 
-                    orderings = th.argsort(preds, descending=True)
-                    filtered_orderings = th.argsort(filtered_preds, descending=True) 
+                    orderings = th.argsort(preds, descending=DESCENDING)
+                    filtered_orderings = th.argsort(filtered_preds, descending=DESCENDING)
 
                     rank = th.where(orderings == head)[0].item()
                                                                                             
@@ -109,6 +112,8 @@ class CatUnsat(CatModel):
                         hits_at_3 += 1
                     if rank < 10:
                         hits_at_10 += 1
+                    if rank < 50:
+                        hits_at_50 += 1
                     if rank < 100:
                         hits_at_100 += 1
 
@@ -122,6 +127,8 @@ class CatUnsat(CatModel):
                         fhits_at_3 += 1
                     if filtered_rank < 10:
                         fhits_at_10 += 1
+                    if filtered_rank < 50:
+                        fhits_at_50 += 1
                     if filtered_rank < 100:
                         fhits_at_100 += 1
 
@@ -134,6 +141,7 @@ class CatUnsat(CatModel):
             hits_at_1 /= testing_dataloader.dataset_len
             hits_at_3 /= testing_dataloader.dataset_len
             hits_at_10 /= testing_dataloader.dataset_len
+            hits_at_50 /= testing_dataloader.dataset_len
             hits_at_100 /= testing_dataloader.dataset_len
             auc = self.compute_rank_roc(ranks)
 
@@ -142,11 +150,12 @@ class CatUnsat(CatModel):
             fhits_at_1 /= testing_dataloader.dataset_len
             fhits_at_3 /= testing_dataloader.dataset_len
             fhits_at_10 /= testing_dataloader.dataset_len
+            fhits_at_50 /= testing_dataloader.dataset_len
             fhits_at_100 /= testing_dataloader.dataset_len
             fauc = self.compute_rank_roc(filtered_ranks)
 
-            raw_metrics = (mean_rank, mrr, hits_at_1, hits_at_3, hits_at_10, hits_at_100, auc)
-            filtered_metrics = (filtered_mean_rank, filtered_mrr, fhits_at_1, fhits_at_3, fhits_at_10, fhits_at_100, fauc)
+            raw_metrics = (mean_rank, mrr, hits_at_1, hits_at_3, hits_at_10, hits_at_50, hits_at_100, auc)
+            filtered_metrics = (filtered_mean_rank, filtered_mrr, fhits_at_1, fhits_at_3, fhits_at_10, fhits_at_50, fhits_at_100, fauc)
         return raw_metrics, filtered_metrics
 
 
