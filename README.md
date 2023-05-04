@@ -89,9 +89,11 @@ in the biomedical domain.
 
 git clone --recursive https://github.com/bio-ontology-research-group/catE.git
 
+```
 cd catE
 conda env create -f environment.yml
 conda activate cate
+```
 
 ## Getting the data
 
