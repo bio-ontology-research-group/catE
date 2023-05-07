@@ -1,0 +1,1 @@
+python ../run_model_unsat.py -case nro -kge transe -g onto2graph -r ../nro/data -dim 32 -m 0 -wd 0 -bs 128 -lr 0.00001 -tbs 16 -e 4000 -d cuda -rf result_nro_onto2graph_completion_transe.csv -tf ../nro/data/test.csv -tu
