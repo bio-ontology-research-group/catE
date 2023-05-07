@@ -24,9 +24,6 @@ embedding methods. Furthermore, we show that CatE can also outperform
 model-theoretic ontology embedding methods in machine learning tasks
 in the biomedical domain.
 
-
-## Tasks
-
 ## Repository Overview
 
 ```
