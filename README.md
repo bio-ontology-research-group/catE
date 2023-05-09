@@ -53,9 +53,6 @@ in the biomedical domain.
     ├── foodon_completion
     │   ├── data
     │   └── models
-    ├── go
-    │   ├── data
-    │   └── models
     ├── go_completion
     │   ├── data
     │   └── models
