@@ -1,1 +1,1 @@
-python ../run_model.py -case ppi -kge ordere -g cat -r ../ppi/data -dim 256 -m 0.06 -wd 0 -bs 2048 -lr 0.001 -tbs 16 -e 4000 -d cuda -rf result_cat_ppi_ordere.csv -tf ../ppi/data/test.tsv -vf ../ppi/data/valid.tsv -tppi -negs 1
+python ../../run_model.py -case ppi -kge ordere -g cat -r ../../ppi/data -dim 256 -m 0.06 -wd 0 -bs 2048 -lr 0.001 -tbs 16 -e 4000 -d cuda -rf result_cat_ppi_ordere.csv -tf ../../ppi/data/test.tsv -vf ../../ppi/data/valid.tsv -tppi -negs 1
