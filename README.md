@@ -46,9 +46,7 @@ in the biomedical domain.
     │   ├── foodon_completion
     │   ├── go_completion
     │   ├── go_deductive
-    │   ├── kisao
     │   ├── nro
-    │   ├── pizza
     │   └── ppi
     ├── fobi
     │   ├── data
