@@ -42,7 +42,7 @@ in the biomedical domain.
 └── use_cases
     ├── experiments
     │   ├── fobi
-	│   ├── nro
+    │   ├── nro
     │   ├── go_deductive
     │   ├── go_completion
     │   ├── foodon_completion
