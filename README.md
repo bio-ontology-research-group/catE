@@ -1,4 +1,4 @@
-# Categorical projection
+# CatE: Embedding $\mathcal{ALC}$ ontologies using category-theoretical semantics.
 
 ## Abstract
 
@@ -80,13 +80,15 @@ in the biomedical domain.
 
 * Python 3.8
 * Anaconda
-
+* Git LFS
 
 ### Set up environment
 
-git clone --recursive https://github.com/bio-ontology-research-group/catE.git
+
 
 ```
+git lfs install #due to some large data files
+git clone --recursive https://github.com/bio-ontology-research-group/catE.git
 cd catE
 conda env create -f environment.yml
 conda activate cate
