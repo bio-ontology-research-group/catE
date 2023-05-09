@@ -41,12 +41,11 @@ in the biomedical domain.
 │   └── example4
 └── use_cases
     ├── experiments
-    │   ├── dideo
     │   ├── fobi
-    │   ├── foodon_completion
-    │   ├── go_completion
+	│   ├── nro
     │   ├── go_deductive
-    │   ├── nro
+    │   ├── go_completion
+    │   ├── foodon_completion
     │   └── ppi
     ├── fobi
     │   ├── data
