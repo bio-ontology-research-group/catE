@@ -21,7 +21,7 @@ import torch as th
 @ck.command()
 @ck.option('--use-case', '-case', required=True, type=ck.Choice(["pizza", "nro", "kisao", "dideo", "fobi", "go_comp", "foodon_comp", "go_ded", "ppi"]))
 @ck.option('--graph-type', '-g', required=True, type=ck.Choice(['rdf', "owl2vec", 'onto2graph', 'cat', 'cat1', 'cat2', 'catnit']))
-@ck.option('--kge-model', '-kge', required=True, type=ck.Choice(['transe', 'distmult', 'convkb', 'ordere']))
+@ck.option('--kge-model', '-kge', required=True, type=ck.Choice(['transe', 'distmult', 'convkb', 'ordere', 'rotate']))
 @ck.option('--root', '-r', required=True, type=ck.Path(exists=True))
 @ck.option('--emb-dim', '-dim', required=True, type=int, default=256)
 @ck.option('--margin', '-m', required=True, type=float, default=0.1)

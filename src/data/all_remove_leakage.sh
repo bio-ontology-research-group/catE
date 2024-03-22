@@ -6,15 +6,15 @@ suffix=$3
 
 #onto2graph
 echo "onto2graph"
-python remove_leakage.py ../../use_cases/${use_case}/data/${prefix}.onto2graph${suffix}edgelist ../../use_cases/${use_case}/data/test.csv onto2graph
+#python remove_leakage.py ../../use_cases/${use_case}/data/${prefix}.onto2graph${suffix}edgelist ../../use_cases/${use_case}/data/test.csv onto2graph
 
 #owl2vec
 echo "owl2vec"
-python remove_leakage.py ../../use_cases/${use_case}/data/${prefix}.owl2vec${suffix}edgelist ../../use_cases/${use_case}/data/test.csv owl2vec
+#python remove_leakage.py ../../use_cases/${use_case}/data/${prefix}.owl2vec${suffix}edgelist ../../use_cases/${use_case}/data/test.csv owl2vec
 
 #rdf
 echo "rdf"
-python remove_leakage.py ../../use_cases/${use_case}/data/${prefix}.rdf${suffix}edgelist ../../use_cases/${use_case}/data/test.csv rdf
+#python remove_leakage.py ../../use_cases/${use_case}/data/${prefix}.rdf${suffix}edgelist ../../use_cases/${use_case}/data/test.csv rdf
 
 #cat
 echo "cat"
