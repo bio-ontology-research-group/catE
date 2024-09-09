@@ -5,23 +5,94 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 from tqdm import tqdm
-from mowl.owlapi.defaults import BOT
+from mowl.owlapi.defaults import BOT, TOP
+from mowl.owlapi import OWLAPIAdapter
 import pandas as pd
 import os
 from scipy.stats import rankdata
 from mowl.utils.data import FastTensorDataLoader
 from mowl.datasets.builtin import PPIYeastDataset
-from mowl.datasets import Dataset, OWLClasses
+from mowl.datasets import Dataset, OWLClasses, PathDataset
 from itertools import cycle
 from tqdm import trange, tqdm
+from src.evaluators import PPIEvaluator, SubsumptionEvaluator
 
 SUBSUMPTION_RELATION = "http://arrow"
 
-class CatPPI(CatModel):
-
+class PPIYeastDatasetV2(PPIYeastDataset):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._deductive_closure_ontology = None
+        
+    @property
+    def deductive_closure_ontology(self):
+        if self._deductive_closure_ontology is None:
+            root_dir = os.path.dirname(os.path.abspath(self.ontology_path))
+            ontology_path = os.path.join(root_dir, "ontology_deductive_closure.owl")
+            self._deductive_closure_ontology = PathDataset(ontology_path).ontology
+
+        return self._deductive_closure_ontology
+
+    @property
+    def classes(self):
+        """List of classes in the dataset. The classes are collected from training, validation and
+        testing ontologies using the OWLAPI method ``ontology.getClassesInSignature()``.
+
+        :rtype: OWLClasses
+        """
+        if self._classes is None:
+            adapter = OWLAPIAdapter()
+            top = adapter.create_class(TOP)
+            bot = adapter.create_class(BOT)
+            classes = set([top, bot])
+            classes |= set(self._ontology.getClassesInSignature())
+
+            # if self._validation:
+                # classes |= set(self._validation.getClassesInSignature())
+            # if self._testing:
+                # classes |= set(self._testing.getClassesInSignature())
+
+            classes = list(classes)
+            self._classes = OWLClasses(classes)
+        return self._classes
+        
+    @property
+    def evaluation_classes(self):
+        """Classes that are used in evaluation
+        """
+
+        if self._evaluation_classes is None:
+            train_classes = self.ontology.getClassesInSignature()
+            train_classes = OWLClasses(train_classes).as_dict.keys()
+            train_classes = set(train_classes)
+            proteins = set()
+            for owl_name, owl_cls in self.classes.as_dict.items():
+                if not owl_name in train_classes:
+                    continue
+                if "http://4932" in owl_name:
+                    proteins.add(owl_cls)
+            self._evaluation_classes = OWLClasses(proteins), OWLClasses(proteins)
+
+        return self._evaluation_classes
+
+
+class CatPPI(CatModel):
+
+    def __init__(self, *args, evaluate_testing_set=True,
+                 evaluate_with_deductive_closure=False,
+                 filter_deductive_closure=False, **kwargs):
+        self._loaded = False
+        self._evaluator_loaded = False
+
+        super().__init__(*args, **kwargs)
+
+        self.evaluate_testing_set = evaluate_testing_set
+        self.evaluate_with_deductive_closure = evaluate_with_deductive_closure
+        self.filter_deductive_closure = filter_deductive_closure
+        
+        print(self.model)
         self._load()
+        self._load_evaluator()
         self._protein_names = None
         self._protein_idxs = None
         self._existential_protein_idxs = None 
@@ -45,7 +116,11 @@ class CatPPI(CatModel):
 
 
     def _load(self):
-        ds = PPIYeastDataset()
+
+        # if self._loaded:
+            # return
+        
+        ds = PPIYeastDatasetV2()
         classes = ds.classes.as_str
         
         ds = Dataset(ds.ontology)
@@ -58,10 +133,43 @@ class CatPPI(CatModel):
                 proteins.add(owl_cls)
         proteins = OWLClasses(proteins)
         proteins = proteins.as_str
-
+        # print(proteins)
+        # proteins.remove("http://4932.YCL020W")
+        
         self._ontology_classes = classes
         self._protein_names = proteins
+        self._loaded = True
         
+    def _load_evaluator(self):
+        if self._evaluator_loaded:
+            return
+        
+        ds = PPIYeastDatasetV2()
+
+        
+
+        if self.evaluate_with_deductive_closure:
+            self.evaluation_model = EvaluationModelSubsumption(self.model, ds,
+                                                       self.node_to_id,
+                                                       self.relation_to_id,
+                                                       self.device)
+
+            self.evaluator = SubsumptionEvaluator(ds, self.device, batch_size=128,
+                                          evaluate_testing_set=self.evaluate_testing_set,
+                                          evaluate_with_deductive_closure=self.evaluate_with_deductive_closure,
+                                          filter_deductive_closure=self.filter_deductive_closure)
+
+        else:
+            self.evaluation_model = EvaluationModelPPI(self.model, ds,
+                                                    self.node_to_id,
+                                                    self.relation_to_id,
+                                                    self.device)
+
+            self.evaluator = PPIEvaluator(ds, self.device)
+
+            
+        self._evaluator_loaded = True
+    
     @property
     def train_proteins_path(self):
         return os.path.join(self.root, "train_proteins.tsv")
@@ -143,174 +251,17 @@ class CatPPI(CatModel):
         dataloader = FastTensorDataLoader(heads, rels, tails, batch_size=batch_size, shuffle=True)
         return dataloader
 
-        
-    def get_filtering_labels(self):
-        logging.info("Getting predictions and labels")
-
-        num_testing_heads = len(self.protein_idxs)
-        num_testing_tails = len(self.existential_protein_idxs)
-        assert num_testing_heads == num_testing_tails, "Heads and tails should be the same size"
-        
-        filtering_labels = np.ones((num_testing_heads, num_testing_tails), dtype=np.int32)
-
-        logging.debug(f"filtering_labels.shape: {filtering_labels.shape}")
-                
-        all_head_idxs = self.protein_idxs.to(self.device)
-        all_tail_idxs = self.existential_protein_idxs.to(self.device)
-        eval_rel_idx = None
-
-        testing_dataloader = self.create_subsumption_dataloader(self.training_interactions_path, batch_size=self.test_batch_size)
-        with th.no_grad():
-            for head_idxs, rel_idxs, tail_idxs in tqdm(testing_dataloader, desc="Getting labels"):
-                head_idxs = head_idxs.to(self.device)
-                
-                for i, head_graph_id in enumerate(head_idxs):
-                    head_ont_id = th.where(self.protein_idxs == head_graph_id)[0]
-                    rel = rel_idxs[i]
-                    tail_graph_id = tail_idxs[i]
-                    tail_ont_id = th.where(self.existential_protein_idxs == tail_graph_id)[0]
-                    filtering_labels[head_ont_id, tail_ont_id] = 10000
-                    
-        return filtering_labels
-
-
-    def compute_ranking_metrics(self, filtering_labels = None, mode = "test"):
-        if not mode in ["test", "validate"]:
-            raise ValueError(f"Mode {mode} is not valid")
-
-        if filtering_labels is None and mode == "test":
-            raise ValueError("Filtering labels should be provided for test mode")
-
-        if filtering_labels is not None and mode == "validate":
-            raise ValueError("Filtering labels should not be provided for validate mode")
-
-        if mode == "test":
-            print(f"Loading best model from {self.model_path}")
-            self.model.load_state_dict(th.load(self.model_path))
-            self.model = self.model.to(self.device)
-
-        self.model.eval()
-        mean_rank, filtered_mean_rank = 0, 0
-        mrr, filtered_mrr = 0, 0
-
-        if mode == "test":
-            hits_at_k = dict([(k, 0) for k in [1, 3, 10, 50, 100]])
-            fhits_at_k = dict([(k, 0) for k in [1, 3, 10, 50, 100]])
-            ranks, filtered_ranks = dict(), dict()
-
-        tuples_path = self.test_tuples_path if mode == "test" else self.validation_tuples_path
-
-        testing_dataloader = self.create_subsumption_dataloader(tuples_path, batch_size=self.test_batch_size)
-        with th.no_grad():
-            for head_idxs, rel_idxs, tail_idxs in tqdm(testing_dataloader, desc="Computing metrics..."):
-
-                predictions = self.predict(head_idxs, rel_idxs, tail_idxs)
-                
-                for i, graph_head in enumerate(head_idxs):
-                    head = th.where(self.protein_idxs == graph_head)[0]
-                    
-                    graph_tail = tail_idxs[i]
-                    tail = th.where(self.existential_protein_idxs == graph_tail)[0]
-
-                    preds = predictions[i]
-
-
-                    preds = preds.cpu().numpy()
-                    rank = rankdata(-preds, method='average')[tail]
-                    
-                    # orderings = th.argsort(preds, descending=True)
-                    # rank = th.where(orderings == tail)[0].item() + 1
-                    mean_rank += rank
-                    mrr += 1/rank
-                    
-                    if mode == "test":
-                        if rank not in ranks:
-                            ranks[rank] = 0
-                        ranks[rank] += 1
-
-                        filt_labels = filtering_labels[head, :]
-                        filt_labels[tail] = 1
-                        # filtered_preds = preds.cpu().numpy() * filt_labels
-                        # filtered_preds = th.from_numpy(filtered_preds).to(self.device)
-                        filtered_preds = preds * filt_labels
-                        filtered_rank = rankdata(-filtered_preds, method='average')[tail]
-                        # filtered_orderings = th.argsort(filtered_preds, descending=True) 
-                        # filtered_rank = th.where(filtered_orderings == tail)[0].item() + 1
-                        filtered_mean_rank += filtered_rank
-                        filtered_mrr += 1/(filtered_rank)
-
-                        for k in hits_at_k.keys():
-                            if rank < k:
-                                hits_at_k[k] += 1
-                            if filtered_rank < k:
-                                fhits_at_k[k] += 1
-                        
-
-                        if filtered_rank not in filtered_ranks:
-                            filtered_ranks[filtered_rank] = 0
-                        filtered_ranks[filtered_rank] += 1
-
-            mean_rank /= testing_dataloader.dataset_len
-            mrr /= testing_dataloader.dataset_len
-            
-            if mode == "test":
-                for k in hits_at_k.keys():
-                    hits_at_k[k] /= testing_dataloader.dataset_len
-                    fhits_at_k[k] /= testing_dataloader.dataset_len
-                
-                auc = self.compute_rank_roc(ranks)
-
-                filtered_mean_rank /= testing_dataloader.dataset_len
-                filtered_mrr /= testing_dataloader.dataset_len
-                fauc = self.compute_rank_roc(filtered_ranks)
-
-                raw_metrics = {"mr": mean_rank, "mrr": mrr, "auc": auc}
-                filtered_metrics = {"fmr": filtered_mean_rank, "fmrr": filtered_mrr, "fauc": fauc}
-
-                for k in hits_at_k.keys():
-                    raw_metrics[f"hits_{k}"] = hits_at_k[k]
-                    filtered_metrics[f"fhits_{k}"] = fhits_at_k[k]
-                
-                return raw_metrics, filtered_metrics
-            else:
-                return mean_rank, mrr
-            
-        
-    def normal_forward(self, head_idxs, rel_idxs, tail_idxs):
-        data = th.vstack((head_idxs, rel_idxs, tail_idxs)).to(self.device)
-        data = data.T
-        
-        logits = self.model.score_hrt(data)
-        # logits = self.model.distance(data)
-        logits = logits.reshape(-1, len(self.protein_idxs))
-        return logits
-
-    def predict(self, heads, rels, tails):
-
-        aux = heads.to(self.device)
-        num_heads = len(heads)
-
-        heads = heads.to(self.device)
-        heads = heads.repeat(len(self.protein_idxs), 1).T
-        assert (heads[0,:] == aux[0]).all(), f"{heads[0,:]}, {aux[0]}"
-        heads = heads.reshape(-1)
-        assert (aux[0] == heads[:num_heads]).all(), "heads are not the same"
-        rels = rels.to(self.device)
-        rels = rels.repeat(len(self.protein_idxs),1).T
-        rels = rels.reshape(-1)
-                                                
-        eval_tails = self.existential_protein_idxs.repeat(num_heads)
-
-        logits = self.normal_forward(heads, rels, eval_tails)
-
-        return logits
+         
         
     def test(self):
         logging.info("Testing ppi...")
-        filtering_labels = self.get_filtering_labels()
-        raw_metrics, filtered_metrics = self.compute_ranking_metrics(filtering_labels)
-        return raw_metrics, filtered_metrics
-
+        self.model.load_state_dict(th.load(self.model_path))
+        self.model = self.model.to(self.device)
+        metrics = self.evaluator.evaluate(self.evaluation_model, mode="test")
+        print_as_md(metrics)
+        
+        return metrics
+                        
     def compute_rank_roc(self, ranks):
         n_tails = len(self.existential_protein_idxs)
                     
@@ -329,7 +280,7 @@ class CatPPI(CatModel):
 
 
 
-    def train(self, wandb_logger):
+    def train_ppi(self, wandb_logger):
         
         print(f"Number of model parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}")
                                                                                     
@@ -346,7 +297,7 @@ class CatPPI(CatModel):
         
         self.model = self.model.to(self.device)
 
-        graph_dataloader = self.create_graph_train_dataloader()
+        graph_dataloader = self.create_graph_train_dataloader(batch_size=16*self.batch_size)
         graph_dataloader = cycle(graph_dataloader)
 
         train_ppi_dataloader = self.create_subsumption_dataloader(self.training_interactions_path, batch_size=self.batch_size)
@@ -365,14 +316,15 @@ class CatPPI(CatModel):
             self.model.train()
 
             graph_loss = 0
-            for head, rel, tail in train_ppi_dataloader:
-                ppi_head, ppi_rel, ppi_tail = next(train_ppi_dataloader)
+            for ppi_head, ppi_rel, ppi_tail in train_ppi_dataloader:
+                # ppi_head, ppi_rel, ppi_tail = next(train_ppi_dataloader)
                 ppi_head = ppi_head.to(self.device)
                 ppi_rel = ppi_rel.to(self.device)
                 ppi_tail = ppi_tail.to(self.device)
 
                 ppi_logits = self.model.forward(ppi_head, ppi_rel, ppi_tail)
-                neg_tail = th.randint(0, len(self.existential_protein_idxs), (len(ppi_head),), device=self.device)
+                neg_tail_ids = th.randint(0, len(self.existential_protein_idxs), (len(ppi_head),), device=self.device)
+                neg_tail = self.existential_protein_idxs[neg_tail_ids]
                 ppi_neg_logits = self.model.forward(ppi_head, ppi_rel, neg_tail)
 
                 if self.loss_type == "bpr":
@@ -418,8 +370,12 @@ class CatPPI(CatModel):
             graph_loss /= len(train_ppi_dataloader)
 
             valid_every = 100
-            if self.able_to_validate and epoch % valid_every == 0:
-                valid_mean_rank, valid_mrr = self.compute_ranking_metrics(mode="validate")
+
+            if epoch % valid_every == 0:
+                metrics = self.evaluator.evaluate(self.evaluation_model, mode="valid")
+                valid_mean_rank = metrics["valid_mr"]
+                valid_mrr = metrics["valid_mrr"]
+            
                 if valid_mrr > best_mrr:
                     best_mrr = valid_mrr
                     th.save(self.model.state_dict(), self.model_path)
@@ -447,7 +403,7 @@ class CatPPI(CatModel):
 
 
 
-    def train_backup(self, wandb_logger):
+    def train(self, wandb_logger):
         
         print(f"Number of model parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}")
                                                                                     
@@ -470,6 +426,8 @@ class CatPPI(CatModel):
 
         train_ppi_dataloader = cycle(train_ppi_dataloader)
 
+        
+        
         tolerance = 0
         best_loss = float("inf")
         best_mr = float("inf")
@@ -493,37 +451,49 @@ class CatPPI(CatModel):
                 for i in range(self.num_negs):
                     neg_tail = th.randint(0, len(self.node_to_id), (len(head),), device=self.device)
                     neg_logits += self.model.forward(head, rel, neg_tail)
+
+                    
                 neg_logits /= self.num_negs
 
+                # print(f"head.shape: {head.shape}. self.protein_idxs.shape: {self.protein_idxs.shape}")
+                mask = th.isin(head, self.protein_idxs)
+                pos_prot_logits = pos_logits[mask]
+                head_prots = head[mask]
+                neg_ids = th.randint(0, len(self.existential_protein_idxs), (len(head_prots),), device=self.device)
+                neg_prots = self.existential_protein_idxs[neg_ids]
+                neg_prot_logits = self.model.forward(head_prots, rel, neg_prots)
+                
+
+                
  
                 if self.loss_type == "bpr":
                     batch_loss = -criterion_bpr(pos_logits - self.margin).mean()
                 elif self.loss_type == "normal":
                     batch_loss = -pos_logits.mean() + th.relu(self.margin + neg_logits).mean()
+                    batch_loss += -pos_prot_logits.mean() + th.relu(self.margin + neg_prot_logits).mean()
+                #batch_loss += self.model.collect_regularization_term().mean()
 
-                # batch_loss += self.model.collect_regularization_term().mean()
+                # ppi_head, ppi_rel, ppi_tail = next(train_ppi_dataloader)
+                # ppi_head = ppi_head.to(self.device)
+                # ppi_rel = ppi_rel.to(self.device)
+                # ppi_tail = ppi_tail.to(self.device)
 
-                ppi_head, ppi_rel, ppi_tail = next(train_ppi_dataloader)
-                ppi_head = ppi_head.to(self.device)
-                ppi_rel = ppi_rel.to(self.device)
-                ppi_tail = ppi_tail.to(self.device)
+                # ppi_logits = self.model.forward(ppi_head, ppi_rel, ppi_tail)
 
-                ppi_logits = self.model.forward(ppi_head, ppi_rel, ppi_tail)
+                # ppi_neg_logits = 0
+                # for i in range(self.num_negs):
+                    # neg_tail = th.randint(0, len(self.existential_protein_idxs), (len(ppi_head),), device=self.device)
+                    # ppi_neg_logits += self.model.forward(ppi_head, ppi_rel, neg_tail)
 
-                ppi_neg_logits = 0
-                for i in range(self.num_negs):
-                    neg_tail = th.randint(0, len(self.existential_protein_idxs), (len(ppi_head),), device=self.device)
-                    ppi_neg_logits += self.model.forward(ppi_head, ppi_rel, neg_tail)
-
-                ppi_neg_logits /= self.num_negs
+                # ppi_neg_logits /= self.num_negs
                     
-                if self.loss_type == "bpr":
-                    ppi_loss = -criterion_bpr(ppi_logits - self.margin).mean()
-                    ppi_loss += -criterion_bpr(self.margin - ppi_neg_logits).mean()
-                elif self.loss_type == "normal":
-                    ppi_loss = -ppi_logits.mean() + th.relu(self.margin + ppi_neg_logits).mean()
+                # if self.loss_type == "bpr":
+                    # ppi_loss = -criterion_bpr(ppi_logits - self.margin).mean()
+                    # ppi_loss += -criterion_bpr(self.margin - ppi_neg_logits).mean()
+                # elif self.loss_type == "normal":
+                    # ppi_loss = -ppi_logits.mean() + th.relu(self.margin + ppi_neg_logits).mean()
 
-                batch_loss += ppi_loss
+                # batch_loss += ppi_loss
                 
                 optimizer.zero_grad()
                 batch_loss.backward()
@@ -539,7 +509,10 @@ class CatPPI(CatModel):
 
             valid_every = 100
             if self.able_to_validate and epoch % valid_every == 0:
-                valid_mean_rank, valid_mrr = self.compute_ranking_metrics(mode="validate")
+                metrics = self.evaluator.evaluate(self.evaluation_model, mode="valid")
+                valid_mean_rank = metrics["valid_mr"]
+                valid_mrr = metrics["valid_mrr"]
+                
                 if valid_mrr > best_mrr:
                     best_mrr = valid_mrr
                     th.save(self.model.state_dict(), self.model_path)
@@ -564,4 +537,121 @@ class CatPPI(CatModel):
 
     
 
+
+
+class EvaluationModelSubsumption(nn.Module):
+    def __init__(self, kge_method, dataset, node_to_id, relation_to_id, device):
+        super().__init__()
+        
+        self.device = device
+
+        self.kge_method = kge_method
+
+        evaluation_classes = dataset.classes.as_str
+        evaluation_classes = [x for x in evaluation_classes if "GO_" in x]
+                
+        
+        class_to_id = {ont: idx for idx, ont in enumerate(evaluation_classes)}
+        self.id_to_class = {idx: ont for idx, ont in enumerate(evaluation_classes)}
+                                 
+        class_id_to_node_id = dict()
+
+        for class_ in evaluation_classes:
+            class_id_to_node_id[class_to_id[class_]] = node_to_id[class_]
+
+        self.node_ids  = th.tensor(list(class_id_to_node_id.values()), dtype=th.long, device=self.device)
+        
+        relation_id = relation_to_id["http://arrow"]
+        self.rel_embedding = th.tensor(relation_id).to(self.device)
+
+                            
+    def forward(self, data, *args, **kwargs):
+
+        x = self.node_ids[data[:, 0]].unsqueeze(1)
+        y = self.node_ids[data[:, 1]].unsqueeze(1)
+                                
+        r = self.rel_embedding.expand_as(x)
+        
+        triples = th.cat([x, r, y], dim=1)
+        assert triples.shape[1] == 3
+        scores = - self.kge_method.score_hrt(triples)
+        # print(scores.min(), scores.max())
+        return scores
+
+class EvaluationModelPPI(nn.Module):
+    def __init__(self, kge_method, dataset, node_to_id, relation_to_id, device):
+        super().__init__()
+        
+        self.device = device
+
+        self.kge_method = kge_method
+
+        evaluation_heads, evaluation_tails = dataset.evaluation_classes
+        evaluation_heads = evaluation_heads.as_str
+        class_to_id = {ont: idx for idx, ont in enumerate(evaluation_heads)}
+                                 
+        ont_id_to_node_id = dict()
+
+        for class_ in evaluation_heads:
+            ont_id_to_node_id[class_to_id[class_]] = node_to_id[class_]
+
+        ont_id_to_existential_id = dict()
+        for class_ in evaluation_heads:
+            ont_id_to_existential_id[class_to_id[class_]] = node_to_id[self.get_existential_node(class_)]
+        
+        self.node_ids  = th.tensor(list(ont_id_to_node_id.values()), dtype=th.long, device=self.device)
+        self.existential_ids = th.tensor(list(ont_id_to_existential_id.values()), dtype=th.long, device=self.device)
+        
+        relation_id = relation_to_id["http://arrow"]
+        self.rel_embedding = th.tensor(relation_id).to(self.device)
+
+    def get_existential_node(self, node):
+        rel = "http://interacts_with"
+        return f"{rel} some {node}"
+        #return f"DOMAIN_{rel}_under_{rel} some {node}"
+
+    def forward(self, data, *args, **kwargs):
+
+        x = self.node_ids[data[:, 0]].unsqueeze(1)
+        y = self.existential_ids[data[:, 2]].unsqueeze(1)
+
+                                
+        r = self.rel_embedding.expand_as(x)
+        
+        triples = th.cat([x, r, y], dim=1)
+        assert triples.shape[1] == 3
+        scores = - self.kge_method.score_hrt(triples)
+        # print(scores.min(), scores.max())
+        return scores
+
+
+    
+def print_as_md(overall_metrics):
+    
+    metrics = ["test_mr", "test_mrr", "test_auc", "test_hits@1", "test_hits@3", "test_hits@10", "test_hits@50", "test_hits@100"]
+    filt_metrics = [k.replace("_", "_f_") for k in metrics]
+
+    string_metrics = "| Property | MR | MRR | AUC | Hits@1 | Hits@3 | Hits@10 | Hits@50 | Hits@100 | \n"
+    string_metrics += "| --- | --- | --- | --- | --- | --- | --- | --- | --- | \n"
+    string_filtered_metrics = "| Property | MR | MRR | AUC | Hits@1 | Hits@3 | Hits@10 | Hits@50 | Hits@100 | \n"
+    string_filtered_metrics += "| --- | --- | --- | --- | --- | --- | --- | --- | --- | \n"
+    
+    string_metrics += "| Overall | "
+    string_filtered_metrics += "| Overall | "
+    for metric in metrics:
+        if metric == "test_mr":
+            string_metrics += f"{int(overall_metrics[metric])} | "
+        else:
+            string_metrics += f"{overall_metrics[metric]:.4f} | "
+    for metric in filt_metrics:
+        if metric == "test_f_mr":
+            string_filtered_metrics += f"{int(overall_metrics[metric])} | "
+        else:
+            string_filtered_metrics += f"{overall_metrics[metric]:.4f} | "
+
+
+    print(string_metrics)
+    print("\n\n")
+    print(string_filtered_metrics)
+        
 

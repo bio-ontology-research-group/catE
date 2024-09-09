@@ -81,6 +81,7 @@ def main(emb_dim, batch_size, lr, num_negs, margin, loss_type,
 
     validation_file = os.path.join(root, "valid.tsv")
     model = CatPPI("ppi",
+                   False,
                    root,
                    emb_dim,
                    batch_size,

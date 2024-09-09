@@ -193,6 +193,7 @@ class CatModel():
         self._model_path = os.path.join(models_dir, basename)
         return self._model_path
 
+    
     @property
     def test_tuples_path(self):
         path = self.test_file
@@ -357,7 +358,7 @@ class CatModel():
 
         
         
-    def create_graph_train_dataloader(self):
+    def create_graph_train_dataloader(self, batch_size=None):
         heads = [self.node_to_id[h] for h in self.graph["head"]]
         rels = [self.relation_to_id[r] for r in self.graph["relation"]]
         tails = [self.node_to_id[t] for t in self.graph["tail"]]
@@ -365,9 +366,11 @@ class CatModel():
         heads = th.LongTensor(heads)
         rels = th.LongTensor(rels)
         tails = th.LongTensor(tails)
-        
+
+        if batch_size is None:
+            batch_size = self.batch_size
         dataloader = FastTensorDataLoader(heads, rels, tails,
-                                          batch_size=self.batch_size, shuffle=True)
+                                          batch_size=batch_size, shuffle=True)
         return dataloader
     
 
