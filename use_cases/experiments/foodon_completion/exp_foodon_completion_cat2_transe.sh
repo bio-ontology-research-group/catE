@@ -1,1 +1,0 @@
-python ../../run_model.py -case foodon_comp -kge transe -g cat2 -r ../../foodon_completion/data -dim 32 -m 0.04 -wd 0.0001 -bs 4096 -lr 0.0001 -tbs 16 -e 4000 -d cuda -rf result_foodon_cat2_completion_transe.csv -tf ../../foodon_completion/data/test.csv -vf ../../foodon_completion/data/valid.csv -tc

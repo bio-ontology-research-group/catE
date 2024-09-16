@@ -1,4 +1,4 @@
-mowl-borg==0.1.1
+mowl-borg==0.3.0
 pykeen
 pystow==0.4.3 # PyKEEN requirement
 wget

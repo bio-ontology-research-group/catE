@@ -13,31 +13,29 @@ from tqdm import tqdm
 
 class DeductiveDataset(torch.utils.data.Dataset):
     
-    def __init__(self, cfg, data, c_dict):
+    def __init__(self, cfg, data, c_dict, e_dict):
         super().__init__()
         self.cfg = cfg
         self.c_dict = c_dict
+        self.e_dict = e_dict
         self.data = self.parse_data(data)
         self.all_candidate = torch.arange(len(c_dict)).unsqueeze(dim=-1)
     def parse_data(self, data):
         tensor = []
         for axiom in data:
-            assert axiom[:21] == 'ObjectIntersectionOf('
+            assert axiom.startswith("ClassAssertion")
+            axiom = axiom[15:-1]
             axiom_parts = axiom.split(' ')
-            counter = 0
-            for i, part in enumerate(axiom_parts):
-                counter += part.count('(')
-                counter -= part.count(')')
-                if counter == 1:
-                    ridge = i
-                    break
-            left = " ".join(axiom_parts[:ridge + 1])[21:]
-            right = " ".join(axiom_parts[ridge + 1:])[:-1]
-            rights = get_rights(right)
-            right = rights[0]
-            assert right[:19] == 'ObjectComplementOf('
-            right = right[19:-1]
-            tensor.append([self.c_dict[left], self.c_dict[right]])
+            # counter = 0
+            # for i, part in enumerate(axiom_parts):
+                # counter += part.count('(')
+                # counter -= part.count(')')
+                # if counter == 1:
+                    # ridge = i
+                    # break
+            left = axiom_parts[0]
+            right = axiom_parts[1]
+            tensor.append([self.c_dict[left], self.e_dict[right]])
         return torch.tensor(tensor)
 
             
@@ -46,7 +44,7 @@ class DeductiveDataset(torch.utils.data.Dataset):
     
     def __getitem__(self, idx):
         pos = self.data[idx]
-        axiom_embs = torch.cat([pos[0].expand_as(self.all_candidate), self.all_candidate], dim=1)
+        axiom_embs = torch.cat([pos[1].expand_as(self.all_candidate), self.all_candidate], dim=1)
         return axiom_embs, pos
                     
 def get_rights(right):
@@ -71,6 +69,20 @@ def get_rights(right):
     else:
         raise ValueError
 
+def get_all_concepts_and_individuals(axiom, all_concepts, all_individuals):
+
+    assert axiom.startswith("ClassAssertion")
+    axiom_body = axiom[15:-1]
+
+    assert axiom_body.startswith("<")
+    assert axiom_body.endswith(">")
+    axiom_parts = axiom_body.split(" ")
+    concept = axiom_parts[0]
+    ind = axiom_parts[1]
+
+    all_concepts.add(concept)
+    all_individuals.add(ind)
+    
 def get_all_concepts_and_relations(axiom, all_concepts, all_relations):
     
     if axiom[0] == '<' or axiom == 'owl:Thing':
@@ -125,7 +137,7 @@ def get_all_concepts_and_relations(axiom, all_concepts, all_relations):
         
     elif axiom[:19] == 'ObjectComplementOf(':
         get_all_concepts_and_relations(axiom[19:-1], all_concepts, all_relations)
-        
+
     else:
         raise ValueError(f"Axiom {axiom} contains unsupported syntax.")
     
@@ -218,7 +230,10 @@ class FALCON(torch.nn.Module):
         # return torch.sigmoid(self.fc_1(torch.nn.functional.leaky_relu(self.fc_0(emb), negative_slope=0.1))).squeeze(dim=-1)
         return torch.sigmoid(self.fc_0(emb)).squeeze(dim=-1)
 
+    
 
+
+    
     def _get_r_fs(self, r_emb, anon_e_emb):
         e_emb = torch.cat([self.e_embedding.weight, anon_e_emb], dim=0)
         # e_emb = self.e_embedding.weight
@@ -318,6 +333,19 @@ class FALCON(torch.nn.Module):
         return preds
         
 
+    def forward_deductive_abox(self, data, anon_e_emb):
+
+        bs, num_e = data.shape[0], data.shape[1]
+        
+        e_idxs = data[:, :, 0]
+        c_idxs = data[:, :, 1]
+        e_emb = self.e_embedding(e_idxs)
+        c_emb = self.c_embedding(c_idxs)
+
+        emb = torch.cat([c_emb, e_emb], dim=-1)
+        return -torch.sigmoid(self.fc_0(emb)).squeeze(dim=-1)
+        
+        
             
     def get_cc_loss(self, fs):
         if self.max_measure == 'max':
@@ -329,8 +357,9 @@ class FALCON(torch.nn.Module):
             raise ValueError
 
     def get_ec_loss(self, axiom):
+        axiom = axiom[15:-1]
         axiom = axiom.split(' ')
-        e, c = axiom[0], axiom[1]
+        c, e = axiom[0], axiom[1]
         e_id = self.e_dict[e]
         c_id = self.c_dict[c]
         e_emb = self.e_embedding.weight[e_id]
@@ -358,8 +387,9 @@ class FALCON(torch.nn.Module):
         return - torch.log(dofm + 1e-10) - torch.log(1 - dofm_neg + 1e-10) 
 
 def extract_nodes(cfg, filename, moreAxioms=[]):
-    outliers = ['ObjectOneOf', 'ObjectHasValue', 'ObjectMinCardinality']
+    outliers = ['ObjectOneOf', 'ObjectHasValue', 'ObjectMinCardinality', "ObjectPropertyAssertion", "DataHasValue", "DataSomeValuesFrom", "DataAllValuesFrom"]
     tbox = []
+    
     with open(cfg.data_root + filename) as f:
         for line in f:
             line = line.strip('\n')
@@ -374,11 +404,28 @@ def extract_nodes(cfg, filename, moreAxioms=[]):
         tbox.append(moreAxiom)
     all_concepts = set()
     all_relations = set()
+    all_individuals = set()
     for axiom in tbox:
         get_all_concepts_and_relations(axiom, all_concepts, all_relations)
     return tbox, all_concepts, all_relations
 
+def extract_nodes_abox(cfg, filename):
+    abox = []
 
+    with open(cfg.data_root + filename) as f:
+        for line in f:
+            line = line.strip("\n")
+            if line.startswith("ClassAssertion"):
+                abox.append(line)
+
+    all_concepts = set()
+    all_individuals = set()
+
+    for axiom in abox:
+        get_all_concepts_and_individuals(axiom, all_concepts, all_individuals)
+
+    return abox, all_concepts, all_individuals
+ 
 def extract_nodes_test(cfg, filename, moreAxioms=[]):
     outliers = ['ObjectOneOf', 'ObjectHasValue', 'ObjectMinCardinality']
     tbox = []
@@ -402,6 +449,22 @@ def extract_nodes_test(cfg, filename, moreAxioms=[]):
         get_all_concepts_and_relations(axiom, all_concepts, all_relations)
     return tbox, all_concepts, all_relations
 
+def extract_nodes_test_abox(cfg, filename):
+    axioms = pd.read_csv(cfg.data_root + filename, sep="\t")
+    axioms.columns = ["individual", "rel", "concept"]
+
+    axioms["individual"] = axioms["individual"].apply(lambda x: f"<{x}>")
+    axioms["concept"] = axioms["concept"].apply(lambda x: f"<{x}>")
+
+    all_concepts = set(axioms["concept"].unique())
+    all_individuals = set(axioms["individual"].unique())
+
+    # format axioms as ClassAssertion(concept individual)
+    axioms["axiom"] = axioms.apply(lambda x: f"ClassAssertion({x['concept']} {x['individual']})", axis=1)
+
+    return axioms["axiom"].tolist(), all_concepts, all_individuals
+    
+    
 def extract_concepts_in_abox_ec(abox_ec):
     ret = set()
     for axiom in abox_ec:
@@ -480,34 +543,37 @@ def tbox_test_neg_generator(tbox, all_concepts, k):
 
 def get_data(cfg):
     tbox_train, all_concepts_train, all_relations_train = extract_nodes(cfg, filename='tbox.txt')
-    tbox_all, all_concepts_test, all_relations_test = extract_nodes_test(cfg, filename='test_cleaned.csv')
-    tbox_test_pos = []
-    for axiom in tbox_all:
+    abox_train, all_concepts_from_abox, all_individuals_train = extract_nodes_abox(cfg, filename='ORE1.owl')
+    abox_all, all_concepts_test, all_individuals_test = extract_nodes_test_abox(cfg, filename='ORE1_membership_test.edgelist')
+    abox_test_pos = []
+    for axiom in abox_all:
         if axiom not in tbox_train:
-            tbox_test_pos.append(axiom)
+            abox_test_pos.append(axiom)
     
-    all_concepts = all_concepts_train | all_concepts_test
-    all_relations = all_relations_train | all_relations_test
-    abox_ec = [                                       
-    ]
+    all_concepts = all_concepts_train | all_concepts_test | all_concepts_from_abox
+    all_relations = all_relations_train 
+    all_individuals = all_individuals_train | all_individuals_test
+    abox_ec = abox_train
     abox_ee = [
     ]
     concepts_in_abox_ec = extract_concepts_in_abox_ec(abox_ec)
     c_dict = {k: v for v, k in enumerate(all_concepts)}
     r_dict = {k: v for v, k in enumerate(all_relations)}
+    e_dict = {k: v for v, k in enumerate(all_individuals)}
+
     # for concept in all_concepts:
         # if concept not in concepts_in_abox_ec:
             # abox_ec.append(concept[:-1] + '_1> ' + concept)
     
-    all_entities = set()
-    for axiom in abox_ec:
-        all_entities.add(axiom.split(' ')[0])
-    for axiom in abox_ee:
-        all_entities.add(axiom.split(' ')[0])
-        all_entities.add(axiom.split(' ')[-1])
+    # all_entities = set()
+    # for axiom in abox_ec:
+        # all_entities.add(axiom.split(' ')[0])
+    # for axiom in abox_ee:
+        # all_entities.add(axiom.split(' ')[0])
+        # all_entities.add(axiom.split(' ')[-1])
     
     # e_dict = {k: v for v, k in enumerate(all_entities)}
-    e_dict = {}
+    
     # try:
         # tbox_test_neg = []
         # with open(cfg.data_root + 'tbox_test_neg.txt') as f:
@@ -519,7 +585,7 @@ def get_data(cfg):
             # for axiom in tbox_test_neg:
                 # f.write("%s\n" % axiom)
     
-    return tbox_train, tbox_test_pos, abox_ec, abox_ee, c_dict, e_dict, r_dict
+    return tbox_train, abox_test_pos, abox_ec, abox_ee, c_dict, e_dict, r_dict
 
 def compute_metrics(preds):
     n_pos = n_neg = len(preds) // 2
@@ -538,7 +604,7 @@ def compute_metrics(preds):
 
 def get_ranks(logits, y):
     logits_sorted = torch.argsort(logits.cpu(), dim=-1, descending=False)
-    ranks = ((logits_sorted == y[1]).nonzero()[0][0] + 1).long()
+    ranks = ((logits_sorted == y[0]).nonzero()[0][0] + 1).long()
     ranking_better = logits_sorted[:ranks - 1]
     r = ranks.item()
     rr = (1 / ranks).item()
@@ -558,7 +624,7 @@ def deductive_get_logits(model, loader, c_dict, anon_e_emb, device):
     with torch.no_grad():
         for X, y in loader:
             X = X.to(device)
-            logit = model.forward_deductive(X, anon_e_emb)
+            logit = model.forward_deductive_abox(X, anon_e_emb)
             logits.append(logit)
             Y.append(y)
     logits = torch.cat(logits, dim=0)
@@ -608,11 +674,11 @@ def deductive_evaluate(model, loader, c_dict, anon_e_emb, device):
     ranks = dict()
     counter = 0
     with torch.no_grad():
-        for X, y in tqdm(loader, total=len(loader)):
-            X = X.to(device)
-            batch_logits = model.forward_deductive(X, anon_e_emb)
+        for inds, class_label in tqdm(loader, total=len(loader)):
+            inds = inds.to(device)
+            batch_logits = model.forward_deductive_abox(inds, anon_e_emb)
             for i, logits in enumerate(batch_logits):
-                r, rr, h1, h3, h10, h50, h100 = get_ranks(batch_logits[i], y[i])
+                r, rr, h1, h3, h10, h50, h100 = get_ranks(batch_logits[i], class_label[i])
                 mr += r
                 mrr += rr
                 mh1 += h1
@@ -675,17 +741,17 @@ if __name__ == '__main__':
     print('Configurations:')
     for arg in vars(cfg):
         print(f'\t{arg}: {getattr(cfg, arg)}', flush=True)
-    tbox_train, tbox_test_pos, abox_ec, abox_ee, c_dict, e_dict, r_dict = get_data(cfg)
+    tbox_train, abox_test_pos, abox_ec, abox_ee, c_dict, e_dict, r_dict = get_data(cfg)
 
     print(f'Concept: {len(c_dict)}\tIndividual: {len(e_dict)}+{cfg.anon_e}\tRelation: {len(r_dict)}', flush=True)
-    deductive_dataset_test = DeductiveDataset(cfg, tbox_test_pos, c_dict)
+    deductive_dataset_test = DeductiveDataset(cfg, abox_test_pos, c_dict, e_dict)
     deductive_dataloader_test = torch.utils.data.DataLoader(dataset=deductive_dataset_test, 
                                                         batch_size=256,
                                                         # num_workers=4,
                                                         shuffle=False,
                                                         drop_last=False)
 
-    print(f'TBox train:{len(tbox_train)}, TBox test pos:{len(tbox_test_pos)}, Concepts: {len(c_dict)}')
+    print(f'TBox train:{len(tbox_train)}, TBox test pos:{len(abox_test_pos)}, Concepts: {len(c_dict)}, Individuals: {len(e_dict)}')
     
     save_root = f'../tmp/{cfg.ontology}_lr_{cfg.lr}_wd_{cfg.wd}_emb_dim_{cfg.emb_dim}_n_models_{cfg.n_models}_bs_{cfg.bs}_anon_e_{cfg.anon_e}_n_inconsistent_{cfg.n_inconsistent}_t_norm_{cfg.t_norm}_residuum_{cfg.residuum}_max_measure_{cfg.max_measure}/'
     if not os.path.exists(save_root):
@@ -716,12 +782,12 @@ if __name__ == '__main__':
             loss_ec = []
             loss_ee = []
             batch_tbox_train = random.sample(tbox_train, cfg.bs)
-            # batch_abox_ec = random.sample(abox_ec, cfg.bs//4)
+            batch_abox_ec = random.sample(abox_ec, cfg.bs//4)
             for axiom in batch_tbox_train:
                 fs = model.forward(axiom, anon_e_emb)
                 loss_cc.append(model.get_cc_loss(fs))
-            # for axiom in batch_abox_ec:
-                # loss_ec.append(model.get_ec_loss(axiom))
+            for axiom in batch_abox_ec:
+                loss_ec.append(model.get_ec_loss(axiom))
             # for axiom in abox_ee:
                 # loss_ee.append(model.get_ee_loss(axiom))
             loss = (sum(loss_cc) / len(loss_cc)) #+ 0.5 * (sum(loss_ec) / len(loss_ec)) 

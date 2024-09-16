@@ -1,1 +1,0 @@
-python ../../run_model_unsat.py -case fobi -kge ordere -g cat -r ../../fobi/data -dim 64 -m 0.08 -wd 0 -bs 1024 -tbs 8 -e 4000 -lr 0.00001 -d cuda -rf result_fobi_cat_unsat_ordere.csv -tf ../../fobi/data/fobi_unsat_classes.csv -tu

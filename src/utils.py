@@ -3,6 +3,11 @@ import numpy as np
 import torch as th
 import os
 
+
+
+from org.semanticweb.owlapi.model import AxiomType as ax
+
+
 subsumption_rel_name = {
     "taxonomy": "http://subclassof",
     "dl2vec": "http://subclassof",
@@ -40,8 +45,7 @@ prefix = {
     "fobi": "fobi",
     "nro": "nro",
     "kisao": "kisao",
-    "go": "go",
-    "go_comp": "go.train",
+    "go": "go.train",
     "foodon_comp": "foodon-merged.train",
     "go_ded": "go"
 }
@@ -69,10 +73,7 @@ suffix = {
 }
 
 suffix_unsat = {
-    "onto2graph": "_initial_terminal.edgelist",
-    "owl2vec": "_initial_terminal.edgelist",
-    "rdf": "_initial_terminal.edgelist",
-    "cat": "_initial_terminal_no_leakage.edgelist",
+    "cat": "_initial_terminal_no_leakage.edgelist.bk",
     "cat1": "_initial_terminal_no_leakage.edgelist",
     "cat2": "_initial_terminal_no_leakage.edgelist",
     
@@ -101,75 +102,41 @@ suffix_ppi = {
 
 
     
+def pairs(iterable):
+    num_items = len(iterable)
+    power_set = list(powerset(iterable))
+    product_set = list(product(power_set, power_set))
 
-def seed_everything(seed=42):
-    random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    np.random.seed(seed)
-    th.manual_seed(seed)
-    th.cuda.manual_seed(seed)
-    th.cuda.manual_seed_all(seed)
-    th.backends.cudnn.deterministic = True
-    th.backends.cudnn.benchmark = False
+    curated_set = []
+    for i1, i2 in product_set:
+        if i1 == i2:
+            continue
+        if len(i1) + len(i2) != num_items:
+            continue
+        if len(i1) == 0 or len(i1) == num_items:
+            continue
+        if len(i2) == 0 or len(i2) == num_items:
+            continue
+        curated_set.append((i1, i2))
 
-
-class FastTensorDataLoader:
-    """
-    A DataLoader-like object for a set of tensors that can be much faster than
-    TensorDataset + DataLoader because dataloader grabs individual indices of
-    the dataset and calls cat (slow).
-    Source: https://discuss.pytorch.org/t/dataloader-much-slower-than-manual-batching/27014/6
-    """
-
-    def __init__(self, *tensors, batch_size=32, shuffle=False):
-        """
-        Initialize a FastTensorDataLoader.
-        :param *tensors: tensors to store. All tensors must have the same size at dimension 0.
-        :param batch_size: batch size to load. Defaults to 32.
-        :type batch_size: int, optional
-        :param shuffle: if True, shuffle the data *in-place* whenever an
-            iterator is created out of this object. Defaults to False.
-        :type shuffle: bool, optional
-        """
-
-        # Type checking
-        if not all(isinstance(t, th.Tensor) for t in tensors):
-            raise TypeError("All non-optional parameters must be Tensors")
-
-        if not isinstance(batch_size, int):
-            raise TypeError("Optional parameter batch_size must be of type int")
-
-        if not isinstance(shuffle, bool):
-            raise TypeError("Optional parameter shuffle must be of type bool")
-
-        assert all(t.shape[0] == tensors[0].shape[0] for t in tensors)
-        self.tensors = tensors
-
-        self.dataset_len = self.tensors[0].shape[0]
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-
-        # Calculate # batches
-        n_batches, remainder = divmod(self.dataset_len, self.batch_size)
-        if remainder > 0:
-            n_batches += 1
-        self.n_batches = n_batches
-
-    def __iter__(self):
-        if self.shuffle:
-            r = th.randperm(self.dataset_len)
-            self.tensors = [t[r] for t in self.tensors]
-        self.i = 0
-        return self
-
-    def __next__(self):
-        if self.i >= self.dataset_len:
-            raise StopIteration
-        batch = tuple(t[self.i:self.i + self.batch_size] for t in self.tensors)
-        self.i += self.batch_size
-        return batch
-
-    def __len__(self):
-        return self.n_batches
+    return curated_set
 
 
+IGNORED_AXIOM_TYPES = [ax.ANNOTATION_ASSERTION,
+                       ax.ASYMMETRIC_OBJECT_PROPERTY,
+                       ax.DECLARATION,
+                       ax.EQUIVALENT_OBJECT_PROPERTIES,
+                       ax.FUNCTIONAL_OBJECT_PROPERTY,
+                       ax.INVERSE_FUNCTIONAL_OBJECT_PROPERTY,
+                       ax.INVERSE_OBJECT_PROPERTIES,
+                       ax.IRREFLEXIVE_OBJECT_PROPERTY,
+                       ax.OBJECT_PROPERTY_DOMAIN,
+                       ax.OBJECT_PROPERTY_RANGE,
+                       ax.REFLEXIVE_OBJECT_PROPERTY,
+                       ax.SUB_PROPERTY_CHAIN_OF,
+                       ax.SUB_ANNOTATION_PROPERTY_OF,
+                       ax.SUB_OBJECT_PROPERTY,
+                       ax.SWRL_RULE,
+                       ax.SYMMETRIC_OBJECT_PROPERTY,
+                       ax.TRANSITIVE_OBJECT_PROPERTY
+                       ]
