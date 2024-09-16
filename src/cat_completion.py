@@ -26,7 +26,7 @@ class CatCompletion(CatModel):
             return self._ancestors_path
         filename = f"inferred_ancestors.txt"
         path = os.path.join(self.root, filename)
-        assert os.path.exists(path)
+        assert os.path.exists(path), f"File {path} does not exist."
         self._ancestors_path = path
         return self._ancestors_path
 
