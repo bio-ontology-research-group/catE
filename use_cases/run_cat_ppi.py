@@ -7,7 +7,7 @@ import mowl
 mowl.init_jvm("10g")
 import click as ck
 import os
-from src.cat_ppi import CatPPI
+from src.cat_ppi_evaluator import CatPPI
 from mowl.utils.random import seed_everything
 import gc
 import torch as th
@@ -27,11 +27,14 @@ import wandb
 @ck.option('--seed', '-s', required=True, type=int, default=42)
 @ck.option("--only_train", '-otr', is_flag=True)
 @ck.option("--only_test", '-ot', is_flag=True)
+@ck.option("--exclude_testing_set", '-ets', is_flag=True)
+@ck.option("--evaluate_deductive", '-evalded', is_flag=True)
 @ck.option("--not_sweep", '-ns', is_flag=True)
 @ck.option("--description", '-desc', default="default")
 def main(emb_dim, batch_size, lr, num_negs, margin, loss_type,
          test_batch_size, epochs, device, seed, only_train, only_test,
-         not_sweep, description):
+         exclude_testing_set, evaluate_deductive, not_sweep,
+         description):
 
 
     wandb_logger = wandb.init(project="cate2", name=description, group=f"cat_ppi")
@@ -96,6 +99,8 @@ def main(emb_dim, batch_size, lr, num_negs, margin, loss_type,
                    device,
                    seed,
                    10, #tolerance,
+                   evaluate_testing_set = not exclude_testing_set,
+                   evaluate_with_deductive_closure = evaluate_deductive,
                    test_completion=True,
                   )
 
@@ -103,10 +108,11 @@ def main(emb_dim, batch_size, lr, num_negs, margin, loss_type,
         model.train(wandb_logger)
 
     if not only_train:
-        
-        raw_metrics, filtered_metrics = model.test()
-        wandb_logger.log(raw_metrics)
-        wandb_logger.log(filtered_metrics)
+        metrics = model.test()
+        wandb_logger.log(metrics)
+        # raw_metrics, filtered_metrics = model.test()
+        # wandb_logger.log(raw_metrics)
+        # wandb_logger.log(filtered_metrics)
         
             
             
