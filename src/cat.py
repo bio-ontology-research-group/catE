@@ -140,7 +140,7 @@ class CatModel():
         if "foodon" in self.use_case:
             graph_name = f"{self.use_case}-merged.train.cat_filtered.edgelist"
         elif "go" in self.use_case:
-            graph_name = f"{self.use_case}.train.cat_filtered.edgelist"
+            graph_name = f"{self.use_case}.train.cat.s1_filtered.edgelist"
         elif "ore1" in self.use_case:
             graph_name = f"ORE1_cat.edgelist"
         else:
