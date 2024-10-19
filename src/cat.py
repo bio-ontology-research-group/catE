@@ -138,11 +138,12 @@ class CatModel():
             return self._graph_path
 
         if "foodon" in self.use_case:
-            graph_name = f"{self.use_case}-merged.train.cat_filtered.edgelist"
+            # graph_name = f"{self.use_case}-merged.train.cat.s1_filtered.edgelist"
+            graph_name = f"{self.use_case}-merged.train.cat.transitive_filtered.edgelist"
         elif "go" in self.use_case:
             graph_name = f"{self.use_case}.train.cat.s1_filtered.edgelist"
         elif "ore1" in self.use_case:
-            graph_name = f"ORE1_cat.edgelist"
+            graph_name = f"ORE1.cat.s1_filtered.edgelist"
         else:
             raise ValueError(f"Unknown use case {self.use_case}")
 
@@ -462,10 +463,11 @@ class CatModel():
 
  
                 if self.loss_type == "bpr":
-                    batch_loss = -criterion_bpr(pos_logits - self.margin).mean()
+                    batch_loss = -criterion_bpr(self.margin + pos_logits).mean() - criterion_bpr(-neg_logits - self.margin).mean()
                 elif self.loss_type == "normal":
                     batch_loss = -pos_logits.mean() + th.relu(self.margin + neg_logits).mean()
 
+                    
                 # batch_loss += self.model.collect_regularization_term().mean()
                 
                 
