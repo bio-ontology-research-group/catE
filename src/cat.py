@@ -143,7 +143,8 @@ class CatModel():
         elif "go" in self.use_case:
             graph_name = f"{self.use_case}.train.cat.s1_filtered.edgelist"
         elif "ore1" in self.use_case:
-            graph_name = f"ORE1.cat.s1_filtered.edgelist"
+            # graph_name = f"ORE1.cat.edgelist"
+            graph_name = f"_train_ORE1_wrapped.cat.s1.edgelist"
         else:
             raise ValueError(f"Unknown use case {self.use_case}")
 
