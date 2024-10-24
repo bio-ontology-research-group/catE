@@ -138,13 +138,15 @@ class CatModel():
             return self._graph_path
 
         if "foodon" in self.use_case:
-            # graph_name = f"{self.use_case}-merged.train.cat.s1_filtered.edgelist"
-            graph_name = f"{self.use_case}-merged.train.cat.transitive_filtered.edgelist"
+            graph_name = f"{self.use_case}-merged.train.cat.s1_filtered.edgelist"
+            # graph_name = f"{self.use_case}-merged.train.cat.transitive_filtered.edgelist"
         elif "go" in self.use_case:
-            graph_name = f"{self.use_case}.train.cat.s1_filtered.edgelist"
+            # graph_name = f"{self.use_case}.train.cat.s1_filtered.edgelist"
+            graph_name = f"{self.use_case}.train.cat.transitive_filtered.edgelist"
         elif "ore1" in self.use_case:
             # graph_name = f"ORE1.cat.edgelist"
-            graph_name = f"_train_ORE1_wrapped.cat.s1.edgelist"
+            # graph_name = f"_train_ORE1_wrapped.cat.transitive_filtered.edgelist"
+            graph_name = f"_train_ORE1_wrapped.cat.s1.transitive_filtered.edgelist"
         else:
             raise ValueError(f"Unknown use case {self.use_case}")
 
@@ -439,12 +441,12 @@ class CatModel():
 
         tolerance = 0
         best_loss = float("inf")
-        best_mr = float("inf")
+        best_mr = 10000000
         best_mrr = 0
         ont_classes_idxs = th.tensor(list(self.ontology_classes_idxs), dtype=th.long,
                                      device=self.device)
 
-        for epoch in trange(self.epochs, desc=f"Training..."):
+        for epoch in trange(self.epochs, desc=f"Training. Best MRR: {best_mrr:.6f}. Best MR: {int(best_mr)}"):
             # logging.info(f"Epoch: {epoch+1}")
             self.model.train()
 
