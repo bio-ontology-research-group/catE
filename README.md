@@ -82,9 +82,16 @@ python run_cat_ppi.py --batch_size=65536 --emb_dim=200 --loss_type=normal --lr=0
 If you have an OWL file, you can generate the lattice running the following commands:
 ```
 cd src/
-python cat_projector.py your_ontology_file.owl
+python cat_projector.py /path/to/your_ontology_file.owl
 ```
+This will generate a file named `/path/to/your_ontology_file.edgelist`. 
+You might want to filter some trivial morphisms such as $C \sqsubseteq \top$ or $\bot \sqsubseteq C$. If so, run:
+```
+python remove_obvious_morphisms.py /path/to/your_ontology_file.edgelist
+```
+This will generate a file named: `/path/to/your_ontology_file_filtered.edgelist`
 
+### CatE in mOWL
 Additionally, we have added the projection algorithm to [mOWL](https://github.com/bio-ontology-research-group/mowl). Please read the following [documentation](https://mowl.readthedocs.io/en/latest/graphs/projection.html)
    
 ## Citation
