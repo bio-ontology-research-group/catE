@@ -2,7 +2,7 @@ import random
 import numpy as np
 import torch as th
 import os
-
+from itertools import chain, combinations, product
 
 
 from org.semanticweb.owlapi.model import AxiomType as ax
@@ -100,6 +100,11 @@ suffix_ppi = {
 }
 
 
+
+def powerset(iterable):
+    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
 
     
 def pairs(iterable):

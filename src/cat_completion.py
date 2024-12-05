@@ -142,6 +142,7 @@ class CatCompletion(CatModel):
                     tail = th.where(self.ontology_classes_idxs == graph_tail)[0]
                     
                     preds = predictions[i]
+                    preds[head] = -10000
                     orderings = th.argsort(preds, descending=True)
                     rank = th.where(orderings == tail)[0].item() + 1
                     mean_rank += rank

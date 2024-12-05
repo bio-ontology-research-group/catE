@@ -34,7 +34,7 @@ class CatPPI(CatModel):
         if self._graph_path is not None:
             return self._graph_path
 
-        graph_name = "ontology_extended.cat.edgelist" 
+        graph_name = "ontology_extended.cat.s1.edgelist" 
         # graph_name = "ontology.cat.edgelist"
         
         graph_path = os.path.join(self.root, f"{graph_name}")

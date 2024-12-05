@@ -2,11 +2,6 @@ import mowl
 mowl.init_jvm("10g")
 
 import jpype
-@jpype.JImplementationFor('java.lang.Comparable')
-class _JComparableHash(object):
-    def __hash__(self):
-        return self.hashCode()
-
 import click as ck
 import sys
 sys.path.append('../..')
@@ -14,8 +9,9 @@ sys.path.append('../..')
 from edge import Edge, Node
 from utils import IGNORED_AXIOM_TYPES, pairs
 
-from mowl.owlapi import OWLAPIAdapter
+from mowl.owlapi import OWLAPIAdapter, OWLClass
 from mowl.owlapi.defaults import BOT, TOP
+from mowl.owlapi.constants import MOWL_IRI as mowl_iri
 from mowl.datasets import PathDataset
 
 from org.semanticweb.owlapi.model import OWLObjectIntersectionOf, OWLObjectSomeValuesFrom, \
@@ -35,8 +31,6 @@ from java.util import HashSet
 from tqdm import tqdm
 import logging
 import networkx as nx
-
-
 
 from tqdm import tqdm
 import random
@@ -168,10 +162,6 @@ class Graph():
             for target in targets:
                 target = str(target)
                 edges.append((source, "http://arrow", target))
-        for source, target in self.abox_edges:
-            source = str(source)
-            target = str(target)
-            edges.append((source, "http://type", target))
         return edges
 
     def as_edges(self):
@@ -190,19 +180,17 @@ class Graph():
             if node.is_negated() and not node.negated_domain:
                 negated_nodes.add(node)
             
-        for neg_node in tqdm(negated_nodes, desc="Lemma 6: Processing negated nodes"):
+        for neg_node in negated_nodes:
             in_edges = list(self.in_edges[neg_node])
             for in_node in in_edges:
                 if in_node.is_owl_nothing() or in_node.is_owl_thing():
                     continue
                 if in_node.domain:
                     continue
-
-                node = neg_node.get_operand()
-                
                 if node == in_node:
                     continue
                 
+                node = neg_node.get_operand()
                 neg_in_node = in_node.negate()
                 op_edge = Edge(node, "saturation_lemma6", neg_in_node)
 
@@ -223,11 +211,9 @@ class Graph():
                     continue
                 if out_node.domain:
                     continue
-                
-                node = neg_node.get_operand()
                 if node == out_node:
                     continue
-                
+                node = neg_node.get_operand()
 
                 union = adapter.create_object_union_of(node.owl_class, out_node.owl_class)
                 if len(union.getNNF().getOperandsAsList()) == 1:
@@ -247,7 +233,7 @@ class Graph():
             if node.is_intersection():
                 intersection_nodes.add(node)
 
-        for int_node in tqdm(intersection_nodes, desc="Lemma 6: Processing intersection nodes"):
+        for int_node in intersection_nodes:
             if not bot_node in self.out_edges[int_node]:
                 continue
 
@@ -277,7 +263,7 @@ class Graph():
                 
                 union_nodes.add(node)
 
-        for un_node in tqdm(union_nodes, desc="Lemma 6: Processing union nodes"):
+        for un_node in union_nodes:
             
             if not top_node in self.in_edges[un_node]:
                 continue
@@ -347,7 +333,7 @@ class Graph():
             if node.is_whole_relation():
                 relations.add(node)
 
-        for rel in tqdm(relations, desc="Definition 7: Processing relations"):
+        for rel in relations:
             for in_rel in self.in_edges[rel]:
                 if not in_rel.in_relation_category():
                     continue
@@ -366,44 +352,20 @@ class Graph():
                     self.add_edge(edge)
                     
                 
-                    
+    def _lemma_8_ppi(self, pf_axioms):
+        rel = "http://interacts_with"
+        owl_rel = adapter.create_object_property(rel)
+        for axiom in pf_axioms:
+            subclass = axiom.getSubClass()
+            superclass = axiom.getSuperClass()
+
+            ex_subclass = adapter.create_object_some_values_from(owl_rel, subclass)
+            ex_superclass = adapter.create_object_some_values_from(owl_rel, superclass)
+            edge = Edge(Node(owl_class = ex_subclass), "saturation_lemma8", Node(owl_class = ex_superclass))
+            self.add_edge(edge)
+
+            
     def _lemma_8(self):
-        relations = set()
-        for node in self.nodes:
-            if node.is_whole_relation():
-                relations.add(node)
-
-        for node in tqdm(self.nodes, desc="Lemma 8: Processing nodes"):
-            if not node.in_object_category():
-                continue
-            if node.is_intersection() or node.is_union() or node.is_existential():
-                continue
-            if node.domain or node.codomain:
-                continue
-            if node.is_owl_thing() or node.is_owl_nothing():
-                continue
-
-            out_edges = list(self.out_edges[node])
-
-            for out_node in out_edges:
-                if not out_node.in_object_category():
-                    continue
-                if out_node.is_intersection() or out_node.is_union() or out_node.is_existential():
-                    continue
-                if out_node.domain or out_node.codomain:
-                    continue
-                if out_node.is_owl_thing():
-                    continue
-                
-                for relation in relations:
-                    ex_class = adapter.create_object_some_values_from(relation.relation, node.owl_class)
-                    ox_out_class = adapter.create_object_some_values_from(relation.relation, out_node.owl_class)
-                    ex_node = Node(owl_class = ex_class)
-                    ox_out_node = Node(owl_class = ox_out_class)
-                    edge = Edge(node, "saturation_lemma8", ex_node)
-                    self.add_edge(edge)
-                
-    def _lemma_8_bk(self):
         existential_nodes = set()
         for node in self.nodes:
             if node.is_existential():
@@ -473,18 +435,19 @@ class Graph():
         G = self.as_nx()
         G = nx.transitive_closure(G)
         logging.debug("Done computing transitive closure in NetworkX")
-        for src, dst in tqdm(G.edges(), desc="Adding transitive closure edges to graph"):
+        for src, dst in tqdm(G.edges()):
             src = self.id_to_node[src]
             dst = self.id_to_node[dst]
             self.add_edge(Edge(src, "transitive_closure", dst))
         logging.debug("Done computing transitive closure")
 
                 
-    def saturate(self):
-        # self._definition_6()
+    def saturate(self, pf_axioms):
+        self._definition_6()
         self._lemma_6()
-        # self._definition_7()
-        # self._lemma_8()
+        self._definition_7()
+        self._lemma_8()
+        self._lemma_8_ppi(pf_axioms)
 
     def is_unsatisfiable(self, node):
         if not isinstance(node, Node):
@@ -531,7 +494,7 @@ class Graph():
     def write_to_file(self, outfile):
         with open(outfile, "w") as f:
             edges = self.as_str_edgelist()
-            for src, rel, dst in tqdm(edges, desc="Writing to file"):
+            for src, rel, dst in tqdm(edges):
                 f.write(f"{src}\t{rel}\t{dst}\n")
 
 class CategoricalProjector():
@@ -565,11 +528,11 @@ class CategoricalProjector():
         self.graph = Graph(abox_edges = abox_edges)
         
         
-        for cls in tqdm(all_classes, desc="Adding nodes to graph"):
+        for cls in tqdm(all_classes):
             self.graph.add_node(Node(owl_class = cls))
         all_axioms = ontology.getAxioms(True)
         
-        for axiom in tqdm(all_axioms, total = len(all_axioms), desc="Processing axioms"):
+        for axiom in tqdm(all_axioms, total = len(all_axioms)):
             self.graph.add_all_edges(*list(self.process_axiom(axiom)))
 
         
@@ -919,6 +882,16 @@ def main(input_ontology, saturation_steps, with_transitive_reduction, add_existe
     
     ds = PathDataset(input_ontology)
 
+    pf_axioms = list()
+    for axiom in ds.ontology.getAxioms():
+        if axiom.getAxiomType() == AxiomType.SUBCLASS_OF:
+            super_class = axiom.getSuperClass()
+            if super_class.getClassExpressionType() == CT.OBJECT_SOME_VALUES_FROM:
+                property_ = super_class.getProperty()
+                if str(property_.toStringID()) == "http://has_function":
+                    pf_axioms.append(axiom)
+    
+    print(f"Number of PF axioms: {len(pf_axioms)}")
     if add_existential_axioms:
         add_extra_existential_axioms(ds.ontology)
     
@@ -932,12 +905,13 @@ def main(input_ontology, saturation_steps, with_transitive_reduction, add_existe
     if saturation_steps > 0:
         for s in range(saturation_steps):
             print(f"Saturation step {s+1}")
-            graph.saturate()
-                            
+            graph.saturate(pf_axioms)
+            if with_transitive_reduction:
+                graph.transitive_closure()
+
         outfile = input_ontology.replace(".owl", f".cat.s{s+1}.edgelist")
-    if with_transitive_reduction:
-        graph.transitive_closure()
-        outfile = outfile.replace("edgelist", "transitive.edgelist")
+        if with_transitive_reduction:
+            outfile = outfile.replace("edgelist", "transitive.edgelist")
 
     print(f"Graph computed. Writing into file: {outfile}")
     with open(outfile, "w") as f:
