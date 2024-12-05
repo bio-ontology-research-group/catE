@@ -138,15 +138,11 @@ class CatModel():
             return self._graph_path
 
         if "foodon" in self.use_case:
-            graph_name = f"{self.use_case}-merged.train.cat.s1_filtered.edgelist"
-            # graph_name = f"{self.use_case}-merged.train.cat.transitive_filtered.edgelist"
+            graph_name = f"{self.use_case}-merged.train.cat_filtered.edgelist"
         elif "go" in self.use_case:
-            # graph_name = f"{self.use_case}.train.cat.s1_filtered.edgelist"
-            graph_name = f"{self.use_case}.train.cat.transitive_filtered.edgelist"
+            graph_name = f"{self.use_case}.train.cat_filtered.edgelist"              
         elif "ore1" in self.use_case:
-            # graph_name = f"ORE1.cat.edgelist"
-            # graph_name = f"_train_ORE1_wrapped.cat.transitive_filtered.edgelist"
-            graph_name = f"_train_ORE1_wrapped.cat.s1.transitive_filtered.edgelist"
+            graph_name = f"ORE1.cat.edgelist"
         else:
             raise ValueError(f"Unknown use case {self.use_case}")
 
