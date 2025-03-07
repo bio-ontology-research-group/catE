@@ -198,7 +198,7 @@ class CatMembership(CatModel):
 
         testing_dataloader = self.create_subsumption_dataloader(tuples_path, batch_size=self.test_batch_size)
         with th.no_grad():
-            for head_idxs, rel_idxs, tail_idxs in tqdm(testing_dataloader, desc="Computing metrics..."):
+            for head_idxs, rel_idxs, tail_idxs in tqdm(testing_dataloader, desc="Computing metrics...", leave=False):
 
                 predictions = self.predict(head_idxs, rel_idxs, tail_idxs)
                 
@@ -295,6 +295,102 @@ class CatMembership(CatModel):
 
         return logits
         
+
+    def train(self, wandb_logger):
+        
+        print(f"Number of model parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}")
+                                                                                    
+        optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
+        min_lr = self.lr/10
+        max_lr = self.lr
+        print("Min lr: {}, Max lr: {}".format(min_lr, max_lr))
+        
+        scheduler = th.optim.lr_scheduler.CyclicLR(optimizer, base_lr=min_lr,
+                                                   max_lr=max_lr, step_size_up = 20,
+                                                   cycle_momentum = False)
+
+        criterion_bpr = nn.LogSigmoid()
+        
+        self.model = self.model.to(self.device)
+
+        graph_dataloader = self.create_graph_train_dataloader()
+
+        tolerance = 0
+        best_loss = float("inf")
+        best_mr = 10000000
+        best_mrr = 0
+        ont_classes_idxs = th.tensor(list(self.ontology_classes_idxs), dtype=th.long,
+                                     device=self.device)
+        with tqdm(total=self.epochs, desc=f"Training. Best MRR: {best_mrr:.6f}. Best MR: {int(best_mr)}") as pbar:
+        
+            for epoch in range(self.epochs):
+                pbar.set_description(f"Training. Best MRR: {best_mrr:.6f}. Best MR: {int(best_mr)}")
+                pbar.update(1)
+                # logging.info(f"Epoch: {epoch+1}")
+                self.model.train()
+
+                graph_loss = 0
+                for head, rel, tail in graph_dataloader:
+                    head = head.to(self.device)
+                    rel = rel.to(self.device)
+                    tail = tail.to(self.device)
+
+                    pos_logits = self.model.forward(head, rel, tail)
+
+                    neg_logits = 0
+                    for i in range(self.num_negs):
+                        neg_tail = th.randint(0, len(self.node_to_id), (len(head),), device=self.device)
+                        neg_logits += self.model.forward(head, rel, neg_tail)
+                    neg_logits /= self.num_negs
+
+
+                    if self.loss_type == "bpr":
+                        batch_loss = -criterion_bpr(self.margin + pos_logits).mean() - criterion_bpr(-neg_logits - self.margin).mean()
+                    elif self.loss_type == "normal":
+                        batch_loss = -pos_logits.mean() + th.relu(self.margin + neg_logits).mean()
+
+
+                    # batch_loss += self.model.collect_regularization_term().mean()
+
+
+                    optimizer.zero_grad()
+                    batch_loss.backward()
+                    optimizer.step()
+
+                    if scheduler is not None:
+                        scheduler.step()
+
+                    graph_loss += batch_loss.item()
+
+
+                graph_loss /= len(graph_dataloader)
+
+                valid_every = 100
+                if self.able_to_validate and epoch % valid_every == 0:
+                    valid_mean_rank, valid_mrr = self.compute_ranking_metrics(mode="validate")
+                    if valid_mrr > best_mrr:
+                        best_mrr = valid_mrr
+                        best_mr = valid_mean_rank
+                        th.save(self.model.state_dict(), self.model_path)
+                        tolerance = self.initial_tolerance+1
+                        
+                    else:
+                        if valid_mean_rank < best_mr:
+                            best_mr = valid_mean_rank
+                            tolerance = self.initial_tolerance+1
+                        else:
+                            tolerance -= 1
+
+                        
+
+
+                    print(f"Training loss: {graph_loss:.6f}\tValidation mean rank: {valid_mean_rank:.6f}\tValidation MRR: {valid_mrr:.6f}")
+                    wandb_logger.log({"epoch": epoch, "train_loss": graph_loss, "valid_mr": valid_mean_rank, "valid_mrr": valid_mrr})
+
+
+                if tolerance == 0:
+                    print("Early stopping")
+                    break
 
 
     

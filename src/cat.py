@@ -12,24 +12,25 @@ from mowl.utils.data import FastTensorDataLoader
 from pykeen.regularizers import LpRegularizer
 
 class OrderE(TransE):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, p, *args, **kwargs):
         super(OrderE, self).__init__(*args, **kwargs)
-
+        self.p = p
+        
     def forward(self, h_indices, r_indices, t_indices, mode = None):
         h, _, t = self._get_representations(h=h_indices, r=r_indices, t=t_indices, mode=mode)
-        order_loss = th.linalg.norm(th.relu(t-h), dim=1)
+        order_loss = th.linalg.norm(th.relu(t-h), dim=1, ord=self.p)
         return -order_loss
 
     def score_hrt(self, hrt_batch, mode = None):
         h, r, t = self._get_representations(h=hrt_batch[:, 0], r = hrt_batch[:, 1], t=hrt_batch[:, 2], mode=mode)
-        return -th.linalg.norm(th.relu(t-h), dim=1)
+        return -th.linalg.norm(th.relu(t-h), dim=1, ord=self.p)
 
-    def distance(self, hrt_batch, mode = None):
-        h, r, t = self._get_representations(h=hrt_batch[:, 0], r = hrt_batch[:, 1], t=hrt_batch[:, 2], mode=mode)
-        mask = ((t-h) > 0).all(dim=1)
-        distance = th.linalg.norm(t-h, dim=1)
-        distance[mask] = -10000
-        return  -distance
+    # def distance(self, hrt_batch, mode = None):
+        # h, r, t = self._get_representations(h=hrt_batch[:, 0], r = hrt_batch[:, 1], t=hrt_batch[:, 2], mode=mode)
+        # mask = ((t-h) > 0).all(dim=1)
+        # distance = th.linalg.norm(t-h, dim=1)
+        # distance[mask] = -10000
+        # return  -distance
 
 
 
@@ -44,6 +45,7 @@ class CatModel():
                  num_negs,
                  margin,
                  loss_type,
+                 p,
                  test_batch_size,
                  epochs,
                  validation_file,
@@ -68,6 +70,7 @@ class CatModel():
         self.num_negs = num_negs
         self.margin = margin
         self.loss_type = loss_type
+        self.p = p
         self.test_batch_size = test_batch_size
         self.epochs = epochs
         self.validation_file = validation_file
@@ -111,7 +114,7 @@ class CatModel():
         print(f"\tDevice: {self.device}")
         print(f"\tSeed: {self.seed}")
         
-        self.model = OrderE(triples_factory=self.triples_factory,
+        self.model = OrderE(self.p, triples_factory=self.triples_factory,
                             embedding_dim=self.emb_dim,
                             random_seed=self.seed)
 
@@ -142,12 +145,12 @@ class CatModel():
         elif "go" in self.use_case:
             graph_name = f"{self.use_case}.train.cat_filtered.edgelist"              
         elif "ore1" in self.use_case:
-            graph_name = f"ORE1.cat.edgelist"
+            graph_name = f"ORE1.cat_filtered.edgelist"
         else:
             raise ValueError(f"Unknown use case {self.use_case}")
 
         if self.el:
-            graph_name = graph_name.replace("train", "train_normalized")
+            graph_name = graph_name.replace(".cat", "_normalized.cat")
         
         graph_path = os.path.join(self.root, graph_name)
         assert os.path.exists(graph_path), f"Graph file {graph_path} does not exist"
@@ -185,7 +188,7 @@ class CatModel():
         params_str += f"_negs{self.num_negs}"
         params_str += f"_margin{self.margin}"
         params_str += f"_loss{self.loss_type}"
-        
+        params_str += f"_p{self.p}"
         models_dir = os.path.dirname(self.root)
         models_dir = os.path.join(models_dir, "models")
 
@@ -420,7 +423,7 @@ class CatModel():
         
         print(f"Number of model parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}")
                                                                                     
-        optimizer = optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=0.0001)
+        optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
         min_lr = self.lr/10
         max_lr = self.lr
         print("Min lr: {}, Max lr: {}".format(min_lr, max_lr))
@@ -442,69 +445,85 @@ class CatModel():
         ont_classes_idxs = th.tensor(list(self.ontology_classes_idxs), dtype=th.long,
                                      device=self.device)
 
-        for epoch in trange(self.epochs, desc=f"Training. Best MRR: {best_mrr:.6f}. Best MR: {int(best_mr)}"):
-            # logging.info(f"Epoch: {epoch+1}")
-            self.model.train()
-
-            graph_loss = 0
-            for head, rel, tail in graph_dataloader:
-                head = head.to(self.device)
-                rel = rel.to(self.device)
-                tail = tail.to(self.device)
-
-                pos_logits = self.model.forward(head, rel, tail)
-
-                neg_logits = 0
-                for i in range(self.num_negs):
-                    neg_tail = th.randint(0, len(self.node_to_id), (len(head),), device=self.device)
-                    neg_logits += self.model.forward(head, rel, neg_tail)
-                neg_logits /= self.num_negs
-
- 
-                if self.loss_type == "bpr":
-                    batch_loss = -criterion_bpr(self.margin + pos_logits).mean() - criterion_bpr(-neg_logits - self.margin).mean()
-                elif self.loss_type == "normal":
-                    batch_loss = -pos_logits.mean() + th.relu(self.margin + neg_logits).mean()
-
-                    
-                # batch_loss += self.model.collect_regularization_term().mean()
-                
-                
-                optimizer.zero_grad()
-                batch_loss.backward()
-                optimizer.step()
-
-                if scheduler is not None:
-                    scheduler.step()
-
-                graph_loss += batch_loss.item()
-                
-
-            graph_loss /= len(graph_dataloader)
-
-            valid_every = 100
-            if self.able_to_validate and epoch % valid_every == 0:
-                valid_mean_rank, valid_mrr = self.compute_ranking_metrics(mode="validate")
-                if valid_mrr > best_mrr:
-                    best_mrr = valid_mrr
-                    th.save(self.model.state_dict(), self.model_path)
-                    tolerance = self.initial_tolerance+1
-                    print("Model saved")
-                else:
-                    tolerance -= 1
-
-
-                    
-                    
-                print(f"Training loss: {graph_loss:.6f}\tValidation mean rank: {valid_mean_rank:.6f}\tValidation MRR: {valid_mrr:.6f}")
-                wandb_logger.log({"epoch": epoch, "train_loss": graph_loss, "valid_mr": valid_mean_rank, "valid_mrr": valid_mrr})
+        with tqdm(total=self.epochs, desc=f"Training. Best MRR: {best_mrr:.6f}. Best MR: {int(best_mr)}") as pbar:
             
-                                    
-            if tolerance == 0:
-                print("Early stopping")
-                break
 
+            for epoch in range(self.epochs):
+                pbar.set_description(f"Training. Best MRR: {best_mrr:.6f}. Best MR: {int(best_mr)}")
+                pbar.update(1)
                 
+                self.model.train()
+
+                graph_loss = 0
+                for head, rel, tail in graph_dataloader:
+                    head = head.to(self.device)
+                    rel = rel.to(self.device)
+                    tail = tail.to(self.device)
+
+                    pos_logits = self.model.forward(head, rel, tail)
+
+                    neg_logits = 0
+                    # neg_tails = th.randint(0, len(self.node_to_id), (len(head), self.num_negs), device=self.device).view(-1)
+                    neg_tails = th.randint(0, len(ont_classes_idxs), (len(head), self.num_negs), device=self.device).view(-1)
+                    neg_tails = ont_classes_idxs[neg_tails]
+                    repeat_head = head.repeat_interleave(self.num_negs)
+                    repeat_rel = rel.repeat_interleave(self.num_negs)
+                    neg_logits = self.model.forward(repeat_head, repeat_rel, neg_tails).view(-1, self.num_negs).mean(dim=1)
+                    # for i in range(self.num_negs):
+                        # neg_tail = th.randint(0, len(self.node_to_id), (len(head),), device=self.device)
+                        # neg_logits += self.model.forward(head, rel, neg_tail)
+                    # neg_logits /= self.num_negs
 
 
-    
+                    if self.loss_type == "bpr":
+                        batch_loss = -criterion_bpr(self.margin + pos_logits).mean() - criterion_bpr(-neg_logits - self.margin).mean()
+                    elif self.loss_type == "normal":
+                        batch_loss = -pos_logits.mean() + th.relu(self.margin + neg_logits).mean()
+
+
+                    # batch_loss += self.model.collect_regularization_term().mean()
+
+
+                    optimizer.zero_grad()
+                    batch_loss.backward()
+                    optimizer.step()
+
+                    if scheduler is not None:
+                        scheduler.step()
+
+                    graph_loss += batch_loss.item()
+
+
+                graph_loss /= len(graph_dataloader)
+
+                valid_every = 100
+                if self.able_to_validate and epoch % valid_every == 0:
+                    valid_mean_rank, valid_mrr = self.compute_ranking_metrics(mode="validate")
+                    if valid_mrr > best_mrr:
+                        best_mrr = valid_mrr
+                        best_mr = valid_mean_rank
+                        th.save(self.model.state_dict(), self.model_path)
+                        tolerance = self.initial_tolerance+1
+                        print("Model saved")
+                    else:
+                        if valid_mean_rank < best_mr:
+                            best_mr = valid_mean_rank
+                            tolerance = self.initial_tolerance + 1
+                        else:
+                            tolerance -= 1
+
+
+
+
+                    print(f"Training loss: {graph_loss:.6f}\tValidation mean rank: {valid_mean_rank:.6f}\tValidation MRR: {valid_mrr:.6f}")
+                    wandb_logger.log({"epoch": epoch, "train_loss": graph_loss, "valid_mr": valid_mean_rank, "valid_mrr": valid_mrr})
+
+
+                if tolerance == 0:
+                    print("Early stopping")
+                    break
+
+
+
+
+

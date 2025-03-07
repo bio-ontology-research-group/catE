@@ -14,22 +14,24 @@ import wandb
 
 @ck.command()
 @ck.option('--use_case', '-case', default="ore1", type=ck.Choice(["ore1"]))
+@ck.option('--el', '-el', is_flag=True, help="Run with theory normalized to EL")
 @ck.option('--emb_dim', '-dim', required=True, type=int, default=256)
 @ck.option('--batch_size', '-bs', required=True, type=int, default=128)
 @ck.option('--lr', '-lr', required=True, type=float, default=0.0001)
 @ck.option('--num_negs', '-negs', required=True, type=int, default=4)
 @ck.option('--margin', '-m', required=True, type=float, default=0.1)
 @ck.option('--loss_type', "-loss", default="normal", type=ck.Choice(["normal", "bpr"]))
+@ck.option('--p', '-p', required=True, type=int, default=1)
 @ck.option('--test_batch_size', '-tbs', required=True, type=int, default=32)
-@ck.option('--epochs', '-e', required=True, type=int, default=10000)
+@ck.option('--epochs', '-e', required=True, type=int, default=50000)
 @ck.option('--device', '-d', default='cuda')
 @ck.option('--seed', '-s', required=True, type=int, default=42)
 @ck.option("--only_train", '-otr', is_flag=True)
 @ck.option("--only_test", '-ot', is_flag=True)
 @ck.option("--description", '-desc', type=str, default='default')
 @ck.option("--no_sweep", '-ns', is_flag=True)
-def main(use_case, emb_dim, batch_size, lr, num_negs, margin,
-         loss_type, test_batch_size, epochs, device, seed, only_train,
+def main(use_case, el, emb_dim, batch_size, lr, num_negs, margin,
+         loss_type, p, test_batch_size, epochs, device, seed, only_train,
          only_test, description, no_sweep):
 
     wandb_logger = wandb.init(project='cate2', group=f'cat_mem_{use_case}', name=f'{description}')
@@ -39,13 +41,15 @@ def main(use_case, emb_dim, batch_size, lr, num_negs, margin,
                    'batch_size': batch_size,
                    'lr': lr,
                    'num_negs': num_negs,
-                   'margin': margin,})
+                   'margin': margin,
+                   'p': p,})
     else:    
         emb_dim = wandb.config.emb_dim
         batch_size = wandb.config.batch_size
         lr = wandb.config.lr
         num_negs = wandb.config.num_negs
         margin = wandb.config.margin
+        p = wandb.config.p
                 
 
     root = f"{use_case}/data"
@@ -61,11 +65,13 @@ def main(use_case, emb_dim, batch_size, lr, num_negs, margin,
         
     print("Configuration:")
     print("\tuse_case: ", use_case)
+    print("\tel: ", el)
     print("\temb_dim: ", emb_dim)
     print("\tbatch_size: ", batch_size)
     print("\tlr: ", lr)
     print("\tnum_negs: ", num_negs)
     print("\tmargin: ", margin)
+    print("\tp: ", p)
     print("\ttest_batch_size: ", test_batch_size)
     print("\tepochs: ", epochs)
     print("\tdevice: ", device)
@@ -77,7 +83,7 @@ def main(use_case, emb_dim, batch_size, lr, num_negs, margin,
     if "ore1" in use_case:
         validation_file = os.path.join(root, "ORE1_membership_valid.edgelist")
     model = CatMembership(use_case,
-                          False,
+                          el,
                           root,
                           emb_dim,
                           batch_size,
@@ -85,6 +91,7 @@ def main(use_case, emb_dim, batch_size, lr, num_negs, margin,
                           num_negs,
                           margin,
                           loss_type,
+                          p,
                           test_batch_size,
                           epochs,
                           validation_file,

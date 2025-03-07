@@ -131,7 +131,7 @@ class CatCompletion(CatModel):
 
         testing_dataloader = self.create_subsumption_dataloader(tuples_path, batch_size=self.test_batch_size)
         with th.no_grad():
-            for head_idxs, rel_idxs, tail_idxs in tqdm(testing_dataloader, desc="Computing metrics..."):
+            for head_idxs, rel_idxs, tail_idxs in tqdm(testing_dataloader, desc="Computing metrics...", leave=False):
 
                 predictions = self.predict(head_idxs, rel_idxs, tail_idxs)
                 

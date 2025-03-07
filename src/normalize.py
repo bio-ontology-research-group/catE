@@ -1,7 +1,7 @@
 import mowl
 mowl.init_jvm("10g")
 from mowl.datasets import PathDataset
-from mowl.ontology.normalize import ELNormalizer
+from mowl_normalizer import ELNormalizer
 from mowl.owlapi.adapter import OWLAPIAdapter
 
 from org.semanticweb.owlapi.model import IRI
