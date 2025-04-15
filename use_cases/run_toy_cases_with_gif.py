@@ -12,6 +12,8 @@ from mowl.utils.random import seed_everything
 import gc
 import torch as th
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import random
 import wandb

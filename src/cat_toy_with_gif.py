@@ -4,6 +4,8 @@ import os
 import pickle
 import numpy as np
 from tqdm import trange
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 
 class CatToyWithGif(CatToy):
