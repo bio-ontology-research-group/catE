@@ -431,3 +431,130 @@ class CatToyWithGif(CatModel):
         auc_y.append(1)
         auc = np.trapz(auc_y, auc_x) / n_tails
         return auc
+from src.cat_toy import CatToy
+import torch as th
+import os
+import pickle
+import numpy as np
+from tqdm import trange
+
+class CatToyWithGif(CatToy):
+    def __init__(self, *args, **kwargs):
+        # Extract the save_embeddings_dir parameter if provided
+        self.save_embeddings_dir = kwargs.pop('save_embeddings_dir', './embeddings')
+        self.save_every = kwargs.pop('save_every', 10)  # Save embeddings every N epochs
+        
+        # Create the directory if it doesn't exist
+        os.makedirs(self.save_embeddings_dir, exist_ok=True)
+        
+        # Call the parent constructor
+        super().__init__(*args, **kwargs)
+        
+    def save_current_embeddings(self, epoch):
+        """Save the current embeddings to a pickle file"""
+        self.model.eval()
+        with th.no_grad():
+            embeddings = self.model.entity_representations[0](indices=None)
+            label_to_embedding = {
+                self.id_to_node[idx]: embeddings[idx].detach().cpu().numpy() 
+                for idx in range(len(self.id_to_node))
+            }
+            
+            # Save to a pickle file
+            save_path = os.path.join(self.save_embeddings_dir, f"step_{epoch}.pkl")
+            with open(save_path, 'wb') as f:
+                pickle.dump(label_to_embedding, f)
+                
+    def train(self, wandb_logger):
+        """Override the train method to save embeddings at each epoch"""
+        print(f"Number of model parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}")
+                                                                                    
+        optimizer = th.optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=0.0001)
+        min_lr = self.lr/10
+        max_lr = self.lr
+        print("Min lr: {}, Max lr: {}".format(min_lr, max_lr))
+        
+        scheduler = th.optim.lr_scheduler.CyclicLR(optimizer, base_lr=min_lr,
+                                                   max_lr=max_lr, step_size_up = 20,
+                                                   cycle_momentum = False)
+
+        criterion_bpr = th.nn.LogSigmoid()
+        
+        self.model = self.model.to(self.device)
+
+        graph_dataloader = self.create_graph_train_dataloader()
+
+        tolerance = 0
+        best_loss = float("inf")
+        best_mr = 10000000
+        best_mrr = 0
+        ont_classes_idxs = th.tensor(list(self.ontology_classes_idxs), dtype=th.long,
+                                     device=self.device)
+
+        # Save initial embeddings
+        self.save_current_embeddings(0)
+
+        for epoch in trange(self.epochs, desc=f"Training..."):
+            # logging.info(f"Epoch: {epoch+1}")
+            self.model.train()
+
+            graph_loss = 0
+            for head, rel, tail in graph_dataloader:
+                head = head.to(self.device)
+                rel = rel.to(self.device)
+                tail = tail.to(self.device)
+
+                pos_logits = self.model.forward(head, rel, tail)
+
+                neg_logits = 0
+                for i in range(self.num_negs):
+                    neg_tail = th.randint(0, len(self.node_to_id), (len(head),), device=self.device)
+                    neg_logits += self.model.forward(head, rel, neg_tail)
+                neg_logits /= self.num_negs
+
+ 
+                if self.loss_type == "bpr":
+                    batch_loss = -criterion_bpr(self.margin + pos_logits).mean() - criterion_bpr(-neg_logits - self.margin).mean()
+                elif self.loss_type == "normal":
+                    batch_loss = -pos_logits.mean() + th.relu(self.margin + neg_logits).mean()
+                    # batch_loss = (-pos_logits + th.relu(self.margin + neg_logits)).mean()
+
+                    
+                # batch_loss += self.model.collect_regularization_term().mean()
+                
+                
+                optimizer.zero_grad()
+                batch_loss.backward()
+                optimizer.step()
+
+                if scheduler is not None:
+                    scheduler.step()
+
+                graph_loss += batch_loss.item()
+                
+
+            graph_loss /= len(graph_dataloader)
+
+            # Save embeddings every save_every epochs
+            if epoch % self.save_every == 0 or epoch == self.epochs - 1:
+                self.save_current_embeddings(epoch + 1)  # +1 so we start at 1 not 0
+
+            valid_every = 1
+            if epoch % valid_every == 0:
+                if graph_loss < best_loss:
+                    best_loss = graph_loss
+                    th.save(self.model.state_dict(), self.model_path)
+                    tolerance = self.initial_tolerance+1
+                    print("Model saved")
+                else:
+                    tolerance -= 1
+
+                print(f"Training loss: {graph_loss:.6f}")
+                wandb_logger.log({"epoch": epoch, "train_loss": graph_loss})
+            
+                                    
+            if tolerance == 0:
+                print("Early stopping")
+                # Save final embeddings before breaking
+                self.save_current_embeddings(epoch + 1)
+                break
