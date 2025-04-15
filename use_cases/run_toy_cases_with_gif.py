@@ -299,8 +299,8 @@ def main(use_case, emb_dim, batch_size, lr, num_negs, margin,
                           device,
                           seed,
                           10, #tolerance,
-                          save_embeddings_dir=embeddings_dir,
-                          save_every=save_every
+                          embeddings_dir,
+                          save_every
                           )
 
     if not only_test:

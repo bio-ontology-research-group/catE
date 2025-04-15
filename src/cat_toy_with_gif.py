@@ -437,21 +437,25 @@ import os
 import pickle
 import numpy as np
 from tqdm import trange
+import matplotlib.pyplot as plt
 
 class CatToyWithGif(CatToy):
-    def __init__(self, *args, **kwargs):
-        # Extract the save_embeddings_dir parameter if provided
-        self.save_embeddings_dir = kwargs.pop('save_embeddings_dir', './embeddings')
-        self.save_every = kwargs.pop('save_every', 10)  # Save embeddings every N epochs
+    def __init__(self, use_case, root, emb_dim, batch_size, lr, num_negs, margin, 
+                 loss_type, p, epochs, device, seed, initial_tolerance, 
+                 save_embeddings_dir='./embeddings', save_every=10):
+        # Save GIF-related parameters
+        self.save_embeddings_dir = save_embeddings_dir
+        self.save_every = save_every
         
         # Create the directory if it doesn't exist
         os.makedirs(self.save_embeddings_dir, exist_ok=True)
         
         # Call the parent constructor
-        super().__init__(*args, **kwargs)
+        super().__init__(use_case, root, emb_dim, batch_size, lr, num_negs, margin,
+                         loss_type, p, epochs, device, seed, initial_tolerance)
         
     def save_current_embeddings(self, epoch):
-        """Save the current embeddings to a pickle file"""
+        """Save the current embeddings to a pickle file and create a plot"""
         self.model.eval()
         with th.no_grad():
             embeddings = self.model.entity_representations[0](indices=None)
@@ -464,6 +468,59 @@ class CatToyWithGif(CatToy):
             save_path = os.path.join(self.save_embeddings_dir, f"step_{epoch}.pkl")
             with open(save_path, 'wb') as f:
                 pickle.dump(label_to_embedding, f)
+            
+            # Also create and save a plot
+            self.plot_embeddings(label_to_embedding, self.graph, self.use_case, epoch)
+    
+    def plot_embeddings(self, data, graph, use_case, epoch):
+        """Plot and save current embeddings"""
+        heads = graph['head']
+        tails = graph['tail']
+        edges = zip(heads, tails)
+                
+        # Extract labels and coordinates
+        labels = list(data.keys())
+        points = np.array(list(data.values()))
+
+        # Scatter plot
+        plt.figure(figsize=(6, 6))
+        plt.scatter(points[:, 0], points[:, 1], c="#1E5697", marker="o", s=100, edgecolors="#224E81", alpha=0.7)
+
+        # Add labels to points
+        for label, (x, y) in zip(labels, points):
+            ha="right" if label in ["owl:Nothing"] else "left"
+            plt.text(x + 0.01, y + 0.01, label, fontsize=9, ha=ha, va="bottom", color="red")
+
+        # Draw arrows for edges
+        for head, tail in edges:
+            x_start, y_start = data[head]
+            x_end, y_end = data[tail]
+        
+            # Draw an arrow
+            if head not in ["A", "B"] and tail not in ["A", "B"]:
+                alpha = 0.3
+            else:
+                alpha = 0.8
+
+            dist_x = 0.95 * (x_end - x_start)
+            dist_y = 0.95 * (y_end - y_start)
+            plt.arrow(x_start, y_start, dist_x, dist_y,
+                    head_width=0.01, length_includes_head=True, color="#9E5959", alpha=alpha)
+
+        # Formatting the plot
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        if use_case == "example5":
+            plt.title(f"Embedding for theory T (Epoch {epoch})")
+        elif use_case == "example5.1":
+            plt.title(f"Embedding for theory T' (Epoch {epoch})")
+        plt.grid(True)
+        
+        # Save the figure
+        plots_dir = os.path.join(self.save_embeddings_dir, "plots")
+        os.makedirs(plots_dir, exist_ok=True)
+        plt.savefig(os.path.join(plots_dir, f"step_{epoch:04d}.png"), dpi=150)
+        plt.close()
                 
     def train(self, wandb_logger):
         """Override the train method to save embeddings at each epoch"""
