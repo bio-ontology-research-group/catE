@@ -423,7 +423,7 @@ class CatModel():
         
         print(f"Number of model parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}")
                                                                                     
-        optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
+        optimizer = optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=0.0001)
         min_lr = self.lr/10
         max_lr = self.lr
         print("Min lr: {}, Max lr: {}".format(min_lr, max_lr))
@@ -463,9 +463,9 @@ class CatModel():
                     pos_logits = self.model.forward(head, rel, tail)
 
                     neg_logits = 0
-                    # neg_tails = th.randint(0, len(self.node_to_id), (len(head), self.num_negs), device=self.device).view(-1)
-                    neg_tails = th.randint(0, len(ont_classes_idxs), (len(head), self.num_negs), device=self.device).view(-1)
-                    neg_tails = ont_classes_idxs[neg_tails]
+                    neg_tails = th.randint(0, len(self.node_to_id), (len(head), self.num_negs), device=self.device).view(-1)
+                    # neg_tails = th.randint(0, len(ont_classes_idxs), (len(head), self.num_negs), device=self.device).view(-1)
+                    # neg_tails = ont_classes_idxs[neg_tails]
                     repeat_head = head.repeat_interleave(self.num_negs)
                     repeat_rel = rel.repeat_interleave(self.num_negs)
                     neg_logits = self.model.forward(repeat_head, repeat_rel, neg_tails).view(-1, self.num_negs).mean(dim=1)

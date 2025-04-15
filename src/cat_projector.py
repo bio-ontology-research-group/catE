@@ -555,12 +555,12 @@ class CategoricalProjector():
         all_classes = ontology.getClassesInSignature()
         #get class assertion axioms
         abox_edges = []
-        for cls in all_classes:
-            cls_str = str(cls.toStringID())
-            cls_assertions = list(ontology.getClassAssertionAxioms(cls))
-            for axiom in cls_assertions:
-                ind = str(axiom.getIndividual().toStringID())
-                abox_edges.append((ind, cls_str))
+        # for cls in all_classes:
+            # cls_str = str(cls.toStringID())
+            # cls_assertions = list(ontology.getClassAssertionAxioms(cls))
+            # for axiom in cls_assertions:
+                # ind = str(axiom.getIndividual().toStringID())
+                # abox_edges.append((ind, cls_str))
         
         self.graph = Graph(abox_edges = abox_edges)
         

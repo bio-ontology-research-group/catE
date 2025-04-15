@@ -300,7 +300,7 @@ class CatMembership(CatModel):
         
         print(f"Number of model parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}")
                                                                                     
-        optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
+        optimizer = optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=0.0001)
         min_lr = self.lr/10
         max_lr = self.lr
         print("Min lr: {}, Max lr: {}".format(min_lr, max_lr))
