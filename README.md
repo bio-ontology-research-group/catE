@@ -88,7 +88,7 @@ Additionally, we have added the projection algorithm to [mOWL](https://github.co
    
 ## Citation
 <details>
-<summary>Click to expand citation</summary>
+<summary>NeSy 2024 conference paper</summary>
 
 ```
 @InProceedings{10.1007/978-3-031-71167-1_19,
@@ -108,5 +108,13 @@ address="Cham",
 pages="355--369",
 isbn="978-3-031-71167-1"
 }
+```
+</details>
+
+<details>
+<summary>NAI Journal (extended version)</summary>
+
+```
+TODO
 ```
 </details>
