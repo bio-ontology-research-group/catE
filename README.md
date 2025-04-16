@@ -87,6 +87,9 @@ This will generate a file named: `/path/to/your_ontology_file_filtered.edgelist`
 Additionally, we have added the projection algorithm to [mOWL](https://github.com/bio-ontology-research-group/mowl). Please read the following [documentation](https://mowl.readthedocs.io/en/latest/graphs/projection.html)
    
 ## Citation
+<details>
+<summary>Click to expand citation</summary>
+
 ```
 @InProceedings{10.1007/978-3-031-71167-1_19,
 author="Zhapa-Camacho, Fernando
@@ -106,3 +109,4 @@ pages="355--369",
 isbn="978-3-031-71167-1"
 }
 ```
+</details>
