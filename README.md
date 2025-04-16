@@ -4,30 +4,6 @@
 
 https://doi.org/10.1007/978-3-031-71167-1_19
 
-
-
-## Abstract
-  
-  Generating vector representations (embeddings) of OWL ontologies is
-  a growing task due to its applications in predicting missing facts
-  and knowledge-enhanced learning in fields such as
-  bioinformatics. The underlying semantics of OWL ontologies is
-  expressed using Description Logics (DLs). Initial approaches to
-  generate embeddings relied on constructing a graph out of
-  ontologies, neglecting the semantics of the logic therein. Recent
-  semantic-preserving embedding methods often target lightweight DL
-  languages like $\mathcal{EL}^{++}$, ignoring more expressive
-  information in ontologies. Although some approaches aim to embed
-  more descriptive DLs like $\mathcal{ALC}$, those methods require the
-  existence of individuals, while many real-world ontologies are
-  devoid of them. We propose an ontology embedding method for the
-  $\mathcal{ALC}$ DL language that considers the lattice structure of
-  concept descriptions. We use connections between DL and Category
-  Theory to materialize the lattice structure and embed it using an
-  order-preserving embedding method. We show that our method
-  outperforms state-of-the-art methods in several knowledge base
-  completion tasks.
-      
 ### Dependencies
 
 * Python >= 3.8
@@ -43,12 +19,28 @@ conda activate cate
 
 ## Getting the data
 
-The data can be obtained from the following Zenodod repository: https://zenodo.org/records/13766937
+The data can be obtained from the following Zenodo repository: https://zenodo.org/records/13766937
 After downloading, decompresss the file with the following command:
 
 ```
 tar -xzvf use_cases.tar.gz
 ```
+
+## Toy case
+
+<table>
+  <tr>
+    <!-- Titles -->
+    <td align="center"><strong>Theory T</strong></td>
+    <td align="center"><strong>Theory T'</strong></td>
+  </tr>
+  <tr>
+    <!-- GIFs -->
+    <td align="center"><img src="figs/theory_t.gif" alt="Theory T" width="400"/></td>
+    <td align="center"><img src="figs/theory_tt.gif" alt="Theory T'" width="400"/></td>
+  </tr>
+</table>
+
 
 ## Running the model
  
