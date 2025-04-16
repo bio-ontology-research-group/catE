@@ -36,8 +36,8 @@ tar -xzvf use_cases.tar.gz
   </tr>
   <tr>
     <!-- GIFs -->
-    <td align="center"><img src="figs/theory_t.gif" alt="Theory T" width="400"/></td>
-    <td align="center"><img src="figs/theory_tt.gif" alt="Theory T'" width="400"/></td>
+    <td align="center"><img src="figs/theory_t.gif" alt="Theory T" width="300"/></td>
+    <td align="center"><img src="figs/theory_tt.gif" alt="Theory T'" width="300"/></td>
   </tr>
 </table>
 
