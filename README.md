@@ -1,8 +1,8 @@
-# CatE: Lattice preserving $\mathcal{ALC}$ ontology embeddings.
+# CatE: Lattice preserving $\mathcal{ALC}$ ontology embeddings (with saturation)
 
-## DOI
-
-https://doi.org/10.1007/978-3-031-71167-1_19
+This repository provides the code for papers:
+- Lattice-preserving ALC ontology embeddings (NeSy 2024)
+- Lattice-preserving ALC ontology embeddings with saturation (NAI Journal 2025)
 
 ### Dependencies
 
@@ -19,14 +19,26 @@ conda activate cate
 
 ## Getting the data
 
-The data can be obtained from the following Zenodo repository: https://zenodo.org/records/13766937
+The data can be obtained from the following Zenodo repositories: 
+- CatE original paper: https://zenodo.org/records/13766937
+- CatE extended version: https://zenodo.org/records/15227489
 After downloading, decompresss the file with the following command:
 
 ```
-tar -xzvf use_cases.tar.gz
+tar -xzvf use_cases.tar.gz # or tar -xzvf cate_exteded.tar.gz
 ```
 
+I know, there is typo there :(
+
 ## Toy case
+
+ Consider the theories: $T = \{A\sqsubseteq B, B \sqsubseteq C, C
+  \sqcup D \sqsubseteq E\}$ and $T' = T \cup \{B \sqsubseteq
+  \bot\}$. The example shows how the embeddings for theory $T'$
+  collapses on $A,B,\bot$, while the embeddings for theory $T$ does
+  not. This example shows how the embeddings can represent ontology
+  semantics in terms of unsatisfiability of concepts.
+
 
 <table>
   <tr>
@@ -112,7 +124,7 @@ isbn="978-3-031-71167-1"
 </details>
 
 <details>
-<summary>NAI Journal (extended version)</summary>
+<summary>NAI Journal 2025 (extended version)</summary>
 
 ```
 TODO

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 class CatToyWithGif(CatToy):
     def __init__(self, use_case, root, emb_dim, batch_size, lr, num_negs, margin, 
                  loss_type, p, epochs, device, seed, initial_tolerance, 
-                 save_embeddings_dir='./embeddings', save_every=10):
+                 save_embeddings_dir='./embeddings', save_every=2):
         # Save GIF-related parameters
         self.save_embeddings_dir = save_embeddings_dir
         self.save_every = save_every

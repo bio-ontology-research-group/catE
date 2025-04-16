@@ -35,7 +35,7 @@ import pickle
 @ck.option("--only_test", '-ot', is_flag=True)
 @ck.option("--not_sweep", '-ns', is_flag=True)
 @ck.option("--description", '-desc', default="toy_case")
-@ck.option("--save_every", '-se', default=10, type=int, help="Save embeddings every N epochs")
+@ck.option("--save_every", '-se', default=2, type=int, help="Save embeddings every N epochs")
 @ck.option("--embeddings_dir", '-ed', default="./embeddings", help="Directory to save embeddings")
 def main(use_case, emb_dim, batch_size, lr, num_negs, margin,
          loss_type, epochs, device, seed, only_train,
@@ -137,7 +137,9 @@ def create_embedding_plots(graph, use_case, embeddings_dir):
         plot_embeddings(label_to_embedding, graph, use_case, epoch, plots_dir)
     
     print(f"Created {len(embedding_files)} plots in {plots_dir}")
-    print(f"To create a GIF, you can use: convert -delay 20 -loop 0 {plots_dir}/step_*.png animation.gif")
+    duration=500
+    delay=duration/len(embedding_files)
+    print(f"To create a GIF that lasts {duration/100} seconds, you can use: convert -delay {delay} -loop 0 {plots_dir}/step_*.png animation.gif")
 
 def plot_embeddings(data, graph, use_case, epoch, output_dir):
     heads = graph['head']
