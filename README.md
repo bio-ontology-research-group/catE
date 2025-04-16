@@ -33,9 +33,9 @@ I know, there is typo there :(
 ## Toy case
 
  Consider the theories: $T = \{A\sqsubseteq B, B \sqsubseteq C, C
-  \sqcup D \sqsubseteq E\}$ and $T' = T \cup \{B \sqsubseteq
-  \bot\}$. The example shows how the embeddings for theory $T'$
-  collapses on $A,B,\bot$, while the embeddings for theory $T$ does
+  \sqcup D \sqsubseteq E\}$ and $T' = T \cup \\{B \sqsubseteq
+  \bot \\}$. The example shows how the embeddings for theory $T$
+  collapses on $A,B,\bot$, while the embeddings for theory $T'$ does
   not. This example shows how the embeddings can represent ontology
   semantics in terms of unsatisfiability of concepts.
 
